@@ -34,7 +34,8 @@ class DoubleLinkedList:
             print("ERROR (POP): there is nothing to pop!")  # empty list
         else:
             self.tail = self.tail.prev__item
-            self.tail.next__item = None
+            if self.tail is not None:
+                self.tail.next__item = None
             self.length -= 1
 
     def unshift(self, elem):
@@ -56,7 +57,8 @@ class DoubleLinkedList:
             print("ERROR (SHIFT): there is nothing to shift!")  # empty list
         else:
             self.head = self.head.next__item
-            self.head.prev__item = None
+            if self.head is not None:
+                self.head.prev__item = None
             self.length -= 1
 
     def len(self):
@@ -108,3 +110,12 @@ class DoubleLinkedList:
     def last(self):
         '''возвращает последний Item в списке'''
         return self.tail
+
+# some extra functions
+    def first_elem(self):
+        '''возвращает первый Item.elem в списке'''
+        return self.head.elem
+
+    def last_elem(self):
+        '''возвращает последний Item.elem в списке'''
+        return self.tail.elem
