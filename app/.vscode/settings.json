@@ -1,9 +1,10 @@
 {
-    "python.linting.pylintEnabled": true,
+    "python.linting.pylintEnabled": false,
     "python.linting.pep8Enabled": true,
     "python.linting.enabled": true,
     "python.pythonPath": "/usr/bin/python3",
     "python.linting.pylintArgs": [
-        "--disable=C0111"
+        "--disable=C0111",
+        "--max-line-length=120"
     ]
 }
