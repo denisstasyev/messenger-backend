@@ -1,0 +1,9 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.linting.pep8Enabled": true,
+    "python.linting.enabled": true,
+    "python.pythonPath": "/usr/bin/python3",
+    "python.linting.pylintArgs": [
+        "--disable=C0111"
+    ]
+}
