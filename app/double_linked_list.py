@@ -1,14 +1,16 @@
-class DoubleLinkedList:
+class Item:
+    '''Item - узел двусвязного списка (класс)'''
 
-    class Item:
-        def __init__(self, next__item=None, prev__item=None, elem=None):
-            '''конструктор Item'''
-            self.next__item = next__item
-            self.prev__item = prev__item
-            self.elem = elem
+    def __init__(self, next__item=None, prev__item=None, elem=None):
+        self.next__item = next__item
+        self.prev__item = prev__item
+        self.elem = elem
+
+
+class DoubleLinkedList:
+    '''DoubleLinkedList - двусвязный список (класс)'''
 
     def __init__(self, head=None, tail=None, length=0):
-        '''конструктор DoubleLinkedList'''
         self.head = head
         self.tail = tail
         self.length = length
@@ -16,7 +18,8 @@ class DoubleLinkedList:
     def push(self, elem):
         '''добавляет элемент в конец списка'''
         if self.tail is None:  # length == 0
-            self.head = Item(None, None, elem)
+            item = Item(None, None, elem)
+            self.head = item
             self.tail = self.head
             self.length = 1
         else:
@@ -37,11 +40,13 @@ class DoubleLinkedList:
     def unshift(self, elem):
         '''добавляет элемент в начало списка'''
         if self.head is None:
-            self.head = Item(None, None, elem)
+            item = Item(None, None, elem)
+            self.head = item
             self.tail = self.head
             self.length = 1
         else:
-            self.head.prev__item = Item(self.head, None, elem)
+            item = Item(self.head, None, elem)
+            self.head.prev__item = item
             self.head = self.head.prev__item
             self.length += 1
 
@@ -61,25 +66,25 @@ class DoubleLinkedList:
     def delete(self, elem):
         '''удаляет элемент из списка (первое вхождение с начала)'''
         if self.head is None:  # length == 0
-            return
+            pass  # return
         elif self.head.elem == elem:
             self.shift()
         else:
-            cursor_item = self.head.next__item
-            while cursor_item is not None:
-                if (cursor_item.elem == elem) and (cursor_item.next__item is not None):
-                    temporary_item = cursor_item.prev__item.next__item
-                    cursor_item.prev__item.next__item = cursor_item.next__item.prev__item
-                    cursor_item.next__item.prev__item = temporary_item
+            cur = self.head.next__item
+            while cur is not None:
+                if (cur.elem == elem) and (cur.next__item is not None):
+                    temporary_item = cur.prev__item.next__item
+                    cur.prev__item.next__item = cur.next__item.prev__item
+                    cur.next__item.prev__item = temporary_item
                     self.length -= 1
-                    return
-                elif (cursor_item.elem == elem) and (cursor_item.next__item is None):
-                    cursor_item.prev__item.next__item = None
-                    self.tail = cursor_item.prev__item
+                    break  # return
+                elif (cur.elem == elem) and (cur.next__item is None):
+                    cur.prev__item.next__item = None
+                    self.tail = cur.prev__item
                     self.length -= 1
-                    return
+                    break  # return
                 else:
-                    cursor_item = cursor_item.next__item
+                    cur = cur.next__item
 
     def contains(self, elem):
         '''проверяет, входит ли элемент в список'''
@@ -88,12 +93,12 @@ class DoubleLinkedList:
         elif self.head.elem == elem:
             return True
         else:
-            cursor_item = self.head.next__item
-            while cursor_item is not None:
-                if cursor_item.elem == elem:
+            cur = self.head.next__item
+            while cur is not None:
+                if cur.elem == elem:
                     return True
                 else:
-                    cursor_item = cursor_item.next__item
+                    cur = cur.next__item
             return False
 
     def first(self):
