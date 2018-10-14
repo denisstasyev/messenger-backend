@@ -1,5 +1,7 @@
 # Manually completed
 node_modules/
+.vscode/
+
 #venv/
 *.pyc
 *.swo
