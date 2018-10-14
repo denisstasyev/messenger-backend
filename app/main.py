@@ -4,11 +4,14 @@
 
 import datetime
 import json
+# import pprint
 
 
 def application(env, start_resp):
     status = '200 OK'
     headers = [('Content-Type', 'application/json')]  # response headers
+
+    # pprint.pprint(env)
 
     body = {
         'time': datetime.datetime.strftime(datetime.datetime.now(), "%H:%M:%S"),
