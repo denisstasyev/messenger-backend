@@ -1,5 +1,16 @@
 curl http://mail.ru/robots.txt
 
+<html>
+<head><title>302 Found</title></head>
+<body bgcolor="white">
+<center><h1>302 Found</h1></center>
+<hr><center>nginx/1.10.3</center>
+</body>
+</html>
+
+
+telnet mail.ru 80
+GET /robots.txt
 
 <html>
 <head><title>302 Found</title></head>
@@ -8,3 +19,4 @@ curl http://mail.ru/robots.txt
 <hr><center>nginx/1.10.3</center>
 </body>
 </html>
+
