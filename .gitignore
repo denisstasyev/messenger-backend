@@ -1,6 +1,7 @@
 # Manually completed
 node_modules/
 .vscode/
+instance/config.py 
 
 #venv/
 *.pyc
