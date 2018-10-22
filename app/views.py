@@ -3,7 +3,7 @@ from app import app
 
 
 @app.route('/<string:name>/')  # вызов, если в браузере путь .../name/
-@app.route('/')
+# @app.route('/')
 def index(name="world"):
     return "Hello, {}!".format(name)
 
@@ -41,17 +41,17 @@ def register():
         return jsonify(request.form)
     else:
         return render_template('auth/register.html')
-
-
 ##########
+
+
 @app.route('/search_users/', methods=['GET'])
-def search_users(query, limit):
+def search_users(query=None, limit=None):
     '''Поиск пользователей'''
     return jsonify(users=['User1', 'User2'])
 
 
 @app.route('/search_chats/', methods=['GET'])
-def search_chats(query, limit):
+def search_chats(query=None, limit=None):
     '''Поиск среди чатов пользователя'''
     return jsonify(chats=['Chat1', 'Chat2'])
 
@@ -63,7 +63,7 @@ def list_chats():
 
 
 @app.route('/create_pers_chat/', methods=['GET', 'POST'])
-def create_pers_chat(user_id):
+def create_pers_chat(user_id=None):
     '''Создание персонального чата'''
     if request.method == "POST":
         return jsonify(chat='Chat')
@@ -72,7 +72,7 @@ def create_pers_chat(user_id):
 
 
 @app.route('/create_group_chat/', methods=['GET', 'POST'])
-def create_group_chat(topic):
+def create_group_chat(topic=None):
     '''Создание группового чата'''
     if request.method == "POST":
         return jsonify(chat='Chat')
@@ -81,30 +81,30 @@ def create_group_chat(topic):
 
 
 @app.route('/add_members_to_group_chat/', methods=['POST'])
-def add_members_to_group_chat(chat_id, user_ids):
+def add_members_to_group_chat(chat_id=None, user_ids=None):
     '''Добавление участников в групповой чат'''
     return jsonify()
 
 
 @app.route('/leave_group_chat/', methods=['POST'])
-def leave_group_chat(chat_id):
+def leave_group_chat(chat_id=None):
     '''Выход из групового чата'''
     return jsonify()
 
 
 @app.route('/send_message/', methods=['POST'])
-def send_message(chat_id, content, attach_id):
+def send_message(chat_id=None, content=None, attach_id=None):
     '''Отправка сообщения в чат'''
     return jsonify(message='Message')
 
 
 @app.route('/read_message/', methods=['GET'])
-def read_message(message_id):
+def read_message(message_id=None):
     '''Прочтение сообщения'''
     return jsonify(chat='Chat')
 
 
 @app.route('/upload_file/', methods=['POST'])
-def upload_file(content, chat_id):
+def upload_file(content=None, chat_id=None):
     '''Загрузка файла'''
     return jsonify(attach='Attachment')
