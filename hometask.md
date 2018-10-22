@@ -11,7 +11,7 @@ psycopg2 устанавливаем в virtualenv
 Далее нужно создать структуру базы данных для того что бы хранить данные вашего проекта.
 Вы можете самостоятельно спроектировать базу, а можете ориентироваться на предлагаемую ниже схему:
 
-![Default database design](/database.png)
+![Default database design](https://raw.githubusercontent.com/denisstasyev/Web/master/database.png)
 
 Структуру базы данных нужно оформить в виде SQL скрипта в файле `project_dir/sql/000_schema.sql`
 Файл не должен содержать ошибок. У любого разработчика (и преподавателя в том числе)
