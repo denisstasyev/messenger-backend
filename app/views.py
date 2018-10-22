@@ -2,7 +2,7 @@ from flask import request, abort, jsonify, render_template
 from app import app
 
 
-@app.route('/<string:name>/')  # вызывать эту функцию если в браузере путь .../name/
+@app.route('/<string:name>/')  # вызов, если в браузере путь .../name/
 @app.route('/')
 def index(name="world"):
     return "Hello, {}!".format(name)
@@ -24,3 +24,87 @@ def form():
         return rv
         # print(request.form)  # request.form - словарь
         # abort(404)
+##########
+
+
+@app.route('/login/', methods=['GET', 'POST'])
+def login():
+    if request.method == "POST":
+        return jsonify(request.form)
+    else:
+        return render_template('auth/login.html')
+
+
+@app.route('/register/', methods=['GET', 'POST'])
+def register():
+    if request.method == "POST":
+        return jsonify(request.form)
+    else:
+        return render_template('auth/register.html')
+
+
+##########
+@app.route('/search_users/', methods=['GET'])
+def search_users(query, limit):
+    '''Поиск пользователей'''
+    return jsonify(users=['User1', 'User2'])
+
+
+@app.route('/search_chats/', methods=['GET'])
+def search_chats(query, limit):
+    '''Поиск среди чатов пользователя'''
+    return jsonify(chats=['Chat1', 'Chat2'])
+
+
+@app.route('/list_chats/', methods=['GET'])
+def list_chats():
+    '''Получение списка чатов пользователя'''
+    return jsonify(chats=['Chat1', 'Chat2'])
+
+
+@app.route('/create_pers_chat/', methods=['GET', 'POST'])
+def create_pers_chat(user_id):
+    '''Создание персонального чата'''
+    if request.method == "POST":
+        return jsonify(chat='Chat')
+        # return jsonify(request.form)
+    return render_template('chats/create_pers_chat.html')
+
+
+@app.route('/create_group_chat/', methods=['GET', 'POST'])
+def create_group_chat(topic):
+    '''Создание группового чата'''
+    if request.method == "POST":
+        return jsonify(chat='Chat')
+        # return jsonify(request.form)
+    return render_template('chats/create_group_chat.html')
+
+
+@app.route('/add_members_to_group_chat/', methods=['POST'])
+def add_members_to_group_chat(chat_id, user_ids):
+    '''Добавление участников в групповой чат'''
+    return jsonify()
+
+
+@app.route('/leave_group_chat/', methods=['POST'])
+def leave_group_chat(chat_id):
+    '''Выход из групового чата'''
+    return jsonify()
+
+
+@app.route('/send_message/', methods=['POST'])
+def send_message(chat_id, content, attach_id):
+    '''Отправка сообщения в чат'''
+    return jsonify(message='Message')
+
+
+@app.route('/read_message/', methods=['GET'])
+def read_message(message_id):
+    '''Прочтение сообщения'''
+    return jsonify(chat='Chat')
+
+
+@app.route('/upload_file/', methods=['POST'])
+def upload_file(content, chat_id):
+    '''Загрузка файла'''
+    return jsonify(attach='Attachment')
