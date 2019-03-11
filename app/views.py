@@ -1,9 +1,10 @@
 from flask import request, abort, jsonify, render_template
-from app import app
+import json
+from app import app, jsonrpc
 
 
-@app.route('/<string:name>/')  # вызов, если в браузере путь .../name/
-# @app.route('/')
+# @app.route('/<string:name>/')  # вызов, если в браузере путь .../name/
+@app.route('/')
 def index(name="world"):
     return "Hello, {}!".format(name)
 
@@ -44,7 +45,7 @@ def register():
 ##########
 
 
-@app.route('/search_users/', methods=['GET'])
+#@app.route('/search_users/', methods=['GET'])
 def search_users(query=None, limit=None):
     '''Поиск пользователей'''
     return jsonify(users=['User1', 'User2'])
@@ -108,3 +109,11 @@ def read_message(message_id=None):
 def upload_file(content=None, chat_id=None):
     '''Загрузка файла'''
     return jsonify(attach='Attachment')
+
+
+##########################################################################
+@jsonrpc.method('print_name')
+def foo():
+    return {"name": "Ivan"}
+
+#curl -i -X POST -H "Content-type: application/json" --data @request.json http://127.0.0.1:5000/api/

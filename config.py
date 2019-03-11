@@ -1,7 +1,12 @@
+DB_NAME = 'messanger'
+DB_HOST = 'localhost'
+DB_USER = 'messanger'
+DB_PASS = 'messanger'  # password
+
+
 class Config(object):
     DEBUG = False
     TESTING = False
-    # DATABASE_URI = 'sqlite:///:memory:'
 
 
 class ProductionConfig(Config):

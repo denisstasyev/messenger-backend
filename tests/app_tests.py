@@ -119,3 +119,16 @@ class AppTest(unittest.TestCase):
 if __name__ == "__main__":
     app.config.from_object('config.TestingConfig')
     unittest.main()
+
+
+############################################################
+class JSONRPCTest(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+
+    def test_get_name(self):
+        rv = self.app.post('/api/', data='{"jsonrpc": "2.0", "method": \
+                                    "print_name", "params": [], "id": 1}')
+        # print(rv.data)
+        self.assertEqual(b'{"id":1,"jsonrpc":"2.0","result":{"name":"Ivan"}}\n',\
+                        rv.data)
