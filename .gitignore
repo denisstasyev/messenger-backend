@@ -1,0 +1,13 @@
+# IDEs
+.idea/
+.vscode/
+
+# Virtual environment
+venv/
+
+# Byte-compiled
+__pycache__/
+.pyc
+
+# Flask
+instance/
