@@ -1,4 +1,4 @@
-# Web
+# Backend part of my messenger project
 This repository is only for Backend part of TechnoTrack FullStack development course by Mail.Ru.
 
 ### Запуск
