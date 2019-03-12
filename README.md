@@ -10,3 +10,27 @@ Run this project with commands:
 source venv/bin/activate
 gunicorn -c routing_configs/gunicorn/gunicorn.conf.py run:app
 ```
+
+## Database migrations
+```bash
+flask db init
+flask db migrate -m "some text"
+flask db upgrade
+```
+
+In case of any migration problems:
+```bash
+DROP TABLE alembic_version;
+```
+
+## Open database from Terminal
+```bash
+psql messenger-backend-development
+SELECT * FROM users;
+```
+
+## Testing by hand views.py
+POST methods:
+```bash
+curl -d "first_name=Denis&last_name=Stasyev" http://std-messenger.com/api/create_user/unique_username
+```

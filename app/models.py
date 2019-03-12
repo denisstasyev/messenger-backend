@@ -1,3 +1,4 @@
+from sqlalchemy.sql import func
 from app import db
 
 
@@ -7,22 +8,25 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
-    registered_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime(), server_default=func.utcnow())
+    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     email = db.Column(db.String(120), unique=True)
 
-    def __init__(self, username, first_name, last_name, registered_at, email=None):
+    def __init__(self, username, first_name, last_name, email=None):
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
-        self.registered_at = registered_at
         self.email = email
 
     def __repr__(self):
-        return "<User('%s','%s', '%s', '%s')>" % (
+        return "<{}: id={}, username={}, first_name={}, last_name={}, created_at={}, updated_at={}>".format(
+            self.__class__.__name__,
+            self.id,
             self.username,
             self.first_name,
             self.last_name,
-            self.registered_at,
+            self.created_at,
+            self.updated_at,
         )
 
 
@@ -31,6 +35,8 @@ class Member(db.Model):
     id = db.Column("member_id", db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)
     chat_id = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.utcnow())
+    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     new_messages = db.Column(db.Integer)
     last_read_message_id = db.Column(db.Integer)
 
@@ -41,7 +47,14 @@ class Member(db.Model):
         self.last_read_message_id = last_read_message_id
 
     def __repr__(self):
-        return "<Member('%s','%s')>" % (self.user_id, self.chat_id)
+        return "<{}: id={}, user_id={}, chat_id={}, created_at={}, updated_at={}>".format(
+            self.__class__.__name__,
+            self.id,
+            self.user_id,
+            self.chat_id,
+            self.created_at,
+            self.updated_at,
+        )
 
 
 class Chat(db.Model):
@@ -49,6 +62,8 @@ class Chat(db.Model):
     id = db.Column("chat_id", db.Integer, primary_key=True)
     chatname = db.Column(db.String(120), nullable=False)
     is_public = db.Column(db.Boolean, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.utcnow())
+    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     last_message = db.Column(db.Integer)
 
     def __init__(self, chatname, is_public, last_message=None):
@@ -57,7 +72,14 @@ class Chat(db.Model):
         self.last_message = last_message
 
     def __repr__(self):
-        return "<Chat('%s','%s')>" % (self.chatname, self.is_public)
+        return "<{}: id={}, chatname={}, is_public={}, created_at={}, updated_at={}>".format(
+            self.__class__.__name__,
+            self.id,
+            self.chatname,
+            self.is_public,
+            self.created_at,
+            self.updated_at,
+        )
 
 
 class Message(db.Model):
@@ -65,38 +87,52 @@ class Message(db.Model):
     id = db.Column("message_id", db.Integer, primary_key=True)
     chat_id = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, nullable=False)
-    added_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.utcnow())
+    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     text = db.Column(db.Text)
 
-    def __init__(self, chat_id, user_id, added_at, text=None):
+    def __init__(self, chat_id, user_id, text=None):
         self.chat_id = chat_id
         self.user_id = user_id
-        self.added_at = added_at
         self.text = text
 
     def __repr__(self):
-        return "<Message('%s','%s', '%s')>" % (
+        return "<{}: id={}, chat_id={}, user_id={}, created_at={}, updated_at={}>".format(
+            self.__class__.__name__,
+            self.id,
             self.chat_id,
             self.user_id,
-            self.added_at,
+            self.created_at,
+            self.updated_at,
         )
 
 
 class Attachment(db.Model):
     __tablename__ = "attachments"
     id = db.Column("attachment_id", db.Integer, primary_key=True)
-    type = db.Column(db.String(80), nullable=False)
+    attachment_type = db.Column(db.String(80), nullable=False)
     url = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.utcnow())
+    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     user_id = db.Column(db.Integer)
     chat_id = db.Column(db.Integer)
     message_id = db.Column(db.Integer)
 
-    def __init__(self, type, url, user_id=None, chat_id=None, message_id=None):
-        self.type = type
+    def __init__(
+        self, attachment_type, url, user_id=None, chat_id=None, message_id=None
+    ):
+        self.attachment_type = attachment_type
         self.url = url
         self.user_id = user_id
         self.chat_id = chat_id
         self.message_id = message_id
 
     def __repr__(self):
-        return "<Message('%s','%s')>" % (self.type, self.url)
+        return "<{}: id={}, attachment_type={}, url={}, created_at={}, updated_at={}>".format(
+            self.__class__.__name__,
+            self.id,
+            self.attachment_type,
+            self.url,
+            self.created_at,
+            self.updated_at,
+        )

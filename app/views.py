@@ -113,3 +113,29 @@ def upload_file(content=None, chat_id=None):
     """Загрузка файла"""
     return jsonify(attach="Attachment")
 
+
+###########################################
+from flask import jsonify
+from app import app, db
+
+from .models import User, Member, Chat, Message
+
+
+@app.route("/api/create_user/<string:username>", methods=["POST"])
+def create_user(username):
+    """Add User"""
+    if not request.form.get("first_name", type=str):
+        raise RuntimeError("Missing first_name")
+
+    if not request.form.get("last_name", type=str):
+        raise RuntimeError("Missing last_name")
+
+    first_name = request.form.get("first_name", type=str)
+    last_name = request.form.get("last_name", type=str)
+    email = request.form.get("email", default=None, type=str)
+
+    user = User(username, first_name, last_name, email)
+    db.session.add(user)
+    db.session.commit()
+    return user.__repr__()
+
