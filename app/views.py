@@ -118,12 +118,12 @@ def upload_file(content=None, chat_id=None):
 from flask import jsonify
 from app import app, db
 
-from .models import User, Member, Chat, Message
+from .models import User, Member, Chat, Message, Attachment
 
 
 @app.route("/api/create_user/<string:username>", methods=["POST"])
 def create_user(username):
-    """Add User"""
+    """Create User"""
     if not request.form.get("first_name", type=str):
         raise RuntimeError("Missing first_name")
 
@@ -139,3 +139,87 @@ def create_user(username):
     db.session.commit()
     return user.__repr__()
 
+
+@app.route("/api/create_member", methods=["POST"])
+def create_member():
+    """Create Member of chat"""
+    if not request.form.get("user_id", type=int):
+        raise RuntimeError("Missing user_id")
+
+    if not request.form.get("chat_id", type=int):
+        raise RuntimeError("Missing chat_id")
+
+    user_id = request.form.get("user_id", type=int)
+    chat_id = request.form.get("chat_id", type=int)
+    new_messages = request.form.get(
+        "new_messages", default=None, type=int  # TODO: to think about this
+    )
+    last_read_message_id = request.form.get(
+        "last_read_message_id", default=None, type=int  # TODO: to think about this
+    )
+
+    member = Member(user_id, chat_id, new_messages, last_read_message_id)
+    db.session.add(member)
+    db.session.commit()
+    return member.__repr__()
+
+
+@app.route("/api/create_chat/<string:chatname>", methods=["POST"])
+def create_chat(chatname):
+    """Create Chat"""
+    if not request.form.get("is_public", type=bool):
+        raise RuntimeError("Missing is_public")
+
+    is_public = request.form.get("is_public", type=bool)
+    last_message = request.form.get(
+        "last_message", type=int  # TODO: to think about this
+    )
+
+    chat = Chat(chatname, is_public, last_message)
+    db.session.add(chat)
+    db.session.commit()
+    return chat.__repr__()
+
+
+@app.route("/api/create_message", methods=["POST"])
+def create_message():
+    """Create Message in chat"""
+    if not request.form.get("chat_id", type=int):
+        raise RuntimeError("Missing chat_id")
+
+    if not request.form.get("user_id", type=int):
+        raise RuntimeError("Missing user_id")
+
+    chat_id = request.form.get("chat_id", type=int)
+    user_id = request.form.get("user_id", type=int)
+    text = request.form.get("text", default=None, type=str)
+
+    message = Message(chat_id, user_id, text)
+    db.session.add(message)
+    db.session.commit()
+    return message.__repr__()
+
+
+# TODO: this method
+@app.route("/api/create_attachment", methods=["POST"])
+def create_attachment():
+    """Create Attachment in message"""
+    if not request.form.get("attachment_type", type=str):
+        raise RuntimeError("Missing attachment_type")
+
+    if not request.form.get("url", type=str):
+        raise RuntimeError("Missing url")
+
+    attachment_type = request.form.get("attachment_type", type=str)
+    url = request.form.get("url", type=str)
+    user_id = request.form.get("user_id", type=int)
+    chat_id = request.form.get("chat_id", type=int)
+    message_id = request.form.get("message_id", type=int)
+
+    attachment = Attachment(attachment_type, url, user_id, chat_id, message_id)
+    db.session.add(attachment)
+    db.session.commit()
+    return attachment.__repr__()
+
+
+# https://flask-russian-docs.readthedocs.io/ru/latest/quickstart.html#public-server

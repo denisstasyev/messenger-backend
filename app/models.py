@@ -136,3 +136,9 @@ class Attachment(db.Model):
             self.created_at,
             self.updated_at,
         )
+
+
+# TODO: add Foreign Keys
+# https://habr.com/ru/post/346344/
+# https://flask-sqlalchemy-russian.readthedocs.io/ru/latest/models.html
+
