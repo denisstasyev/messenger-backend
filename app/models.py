@@ -5,12 +5,16 @@ from app import db
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column("user_id", db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(80), index=True, unique=True, nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
     created_at = db.Column(db.DateTime(), server_default=func.utcnow())
     updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     email = db.Column(db.String(120), unique=True)
+
+    messages = db.relationship("Message", backref="user_owner", lazy="dynamic")
+    attachments = db.relationship("Attachment", backref="user_owner", lazy="dynamic")
+    memberships = db.relationship("Member", backref="user_owner", lazy="dynamic")
 
     def __init__(self, username, first_name, last_name, email=None):
         self.username = username
@@ -33,12 +37,12 @@ class User(db.Model):
 class Member(db.Model):
     __tablename__ = "members"
     id = db.Column("member_id", db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)
-    chat_id = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.utcnow())
     updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     new_messages = db.Column(db.Integer)
-    last_read_message_id = db.Column(db.Integer)
+    last_read_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
     def __init__(self, user_id, chat_id, new_messages=None, last_read_message_id=None):
         self.user_id = user_id
@@ -60,11 +64,15 @@ class Member(db.Model):
 class Chat(db.Model):
     __tablename__ = "chats"
     id = db.Column("chat_id", db.Integer, primary_key=True)
-    chatname = db.Column(db.String(120), nullable=False)
+    chatname = db.Column(db.String(120), index=True, nullable=False)
     is_public = db.Column(db.Boolean, nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.utcnow())
     updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
-    last_message = db.Column(db.Integer)
+    last_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
+
+    messages = db.relationship("Message", backref="chat_owner", lazy="dynamic")
+    members = db.relationship("Member", backref="chat_owner", lazy="dynamic")
+    attachments = db.relationship("Attachment", backref="chat_owner", lazy="dynamic")
 
     def __init__(self, chatname, is_public, last_message=None):
         self.chatname = chatname
@@ -85,11 +93,13 @@ class Chat(db.Model):
 class Message(db.Model):
     __tablename__ = "messages"
     id = db.Column("message_id", db.Integer, primary_key=True)
-    chat_id = db.Column(db.Integer, nullable=False)
-    user_id = db.Column(db.Integer, nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.utcnow())
     updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
     text = db.Column(db.Text)
+
+    attachments = db.relationship("Attachment", backref="message_owner", lazy="dynamic")
 
     def __init__(self, chat_id, user_id, text=None):
         self.chat_id = chat_id
@@ -114,9 +124,9 @@ class Attachment(db.Model):
     url = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.utcnow())
     updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
-    user_id = db.Column(db.Integer)
-    chat_id = db.Column(db.Integer)
-    message_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"))
+    message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
     def __init__(
         self, attachment_type, url, user_id=None, chat_id=None, message_id=None
@@ -136,9 +146,3 @@ class Attachment(db.Model):
             self.created_at,
             self.updated_at,
         )
-
-
-# TODO: add Foreign Keys
-# https://habr.com/ru/post/346344/
-# https://flask-sqlalchemy-russian.readthedocs.io/ru/latest/models.html
-

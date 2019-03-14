@@ -14,7 +14,7 @@ gunicorn -c routing_configs/gunicorn/gunicorn.conf.py run:app
 ## Database migrations
 ```bash
 flask db init
-flask db migrate -m "some text"
+flask db migrate -m "000_some_text"
 flask db upgrade
 ```
 
