@@ -121,6 +121,7 @@ from app import app, db
 from .models import User, Member, Chat, Message, Attachment
 
 
+### Creation API methods
 @app.route("/api/create_user/<string:username>", methods=["POST"])
 def create_user(username):
     """Create User"""
@@ -151,11 +152,9 @@ def create_member():
 
     user_id = request.form.get("user_id", type=int)
     chat_id = request.form.get("chat_id", type=int)
-    new_messages = request.form.get(
-        "new_messages", default=None, type=int  # TODO: to think about this
-    )
+    new_messages = request.form.get("new_messages", default=0, type=int)
     last_read_message_id = request.form.get(
-        "last_read_message_id", default=None, type=int  # TODO: to think about this
+        "last_read_message_id", default=None, type=int
     )
 
     member = Member(user_id, chat_id, new_messages, last_read_message_id)
@@ -171,9 +170,7 @@ def create_chat(chatname):
         raise RuntimeError("Missing is_public")
 
     is_public = request.form.get("is_public", type=bool)
-    last_message = request.form.get(
-        "last_message", type=int  # TODO: to think about this
-    )
+    last_message = request.form.get("last_message", default=None, type=int)
 
     chat = Chat(chatname, is_public, last_message)
     db.session.add(chat)
@@ -200,7 +197,6 @@ def create_message():
     return message.__repr__()
 
 
-# TODO: this method
 @app.route("/api/create_attachment", methods=["POST"])
 def create_attachment():
     """Create Attachment in message"""
@@ -220,6 +216,9 @@ def create_attachment():
     db.session.add(attachment)
     db.session.commit()
     return attachment.__repr__()
+
+
+### Deletion API methods
 
 
 # https://flask-russian-docs.readthedocs.io/ru/latest/quickstart.html#public-server

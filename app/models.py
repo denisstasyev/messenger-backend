@@ -41,7 +41,7 @@ class Member(db.Model):
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.utcnow())
     updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
-    new_messages = db.Column(db.Integer)
+    new_messages = db.Column(db.Integer, default=0)
     last_read_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
     def __init__(self, user_id, chat_id, new_messages=None, last_read_message_id=None):
