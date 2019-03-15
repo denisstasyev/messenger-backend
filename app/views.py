@@ -2,12 +2,6 @@ from flask import request, abort, jsonify, render_template
 from app import app
 
 
-@app.route("/<string:name>/")  # вызов, если в браузере путь .../name/
-# @app.route('/')
-def index(name="world"):
-    return "Hello, {}!".format(name)
-
-
 @app.route("/form/", methods=["GET", "POST"])
 def form():
     if request.method == "GET":
@@ -122,23 +116,6 @@ from .models import User, Member, Chat, Message, Attachment
 
 
 ### Creation API methods
-@app.route("/api/create_user/<string:username>", methods=["POST"])
-def create_user(username):
-    """Create User"""
-    if not request.form.get("first_name", type=str):
-        raise RuntimeError("Missing first_name")
-
-    if not request.form.get("last_name", type=str):
-        raise RuntimeError("Missing last_name")
-
-    first_name = request.form.get("first_name", type=str)
-    last_name = request.form.get("last_name", type=str)
-    email = request.form.get("email", default=None, type=str)
-
-    user = User(username, first_name, last_name, email)
-    db.session.add(user)
-    db.session.commit()
-    return user.__repr__()
 
 
 @app.route("/api/create_member", methods=["POST"])
@@ -222,3 +199,128 @@ def create_attachment():
 
 
 # https://flask-russian-docs.readthedocs.io/ru/latest/quickstart.html#public-server
+
+
+from flask import render_template
+from app import app
+
+
+@app.route("/")
+@app.route("/index/")
+@app.route("/<string:username>/")
+def index(username="guest"):
+    return render_template("index.html", title="Home", username=username)
+
+
+###################3
+
+from flask import jsonify, request, make_response, url_for
+from app import app, db
+
+from .models import User, Member, Chat, Message, Attachment, model_as_dict
+
+
+@app.errorhandler(400)
+def bad_request(error):
+    return make_response(jsonify({"error": "Bad request"}), 400)
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({"error": "Not found"}), 404)
+
+
+# API methods with User
+
+
+def make_public_user(user):
+    """Create URI for User"""
+    new_user = {}
+    for field in user:
+        if field == "user_id":
+            new_user["uri"] = url_for(
+                "get_user", username=user["username"], _external=True
+            )
+        else:
+            new_user[field] = user[field]
+    return new_user
+
+
+@app.route("/api/users/", methods=["GET"])
+def get_users():
+    """Get Users"""
+    users = User.query.all()
+    users = [model_as_dict(user) for user in users]
+    return jsonify({"users": list(map(make_public_user, users))})
+
+
+@app.route("/api/users/<string:username>/", methods=["GET"])
+def get_user(username):
+    """Get User"""
+    user = User.query.filter(User.username == username).first_or_404()
+    return jsonify({"user": make_public_user(model_as_dict(user))})
+
+
+@app.route("/api/users/", methods=["POST"])
+def create_user():
+    """Create User"""
+    if (
+        not request.json
+        or not "username" in request.json
+        or not "first_name" in request.json
+        or not "last_name" in request.json
+    ):
+        abort(400)
+
+    username = request.json["username"]
+    first_name = request.json["first_name"]
+    last_name = request.json["last_name"]
+
+    if "email" in request.json:
+        email = request.json["email"]
+        user = User(username, first_name, last_name, email)
+    else:
+        user = User(username, first_name, last_name)
+
+    db.session.add(user)
+    db.session.commit()
+
+    # сделать проверку на уникальность username
+    return jsonify({"user": make_public_user(model_as_dict(user))}), 201
+
+
+@app.route("/api/users/<int:task_id>", methods=["PUT"])
+def update_task(task_id):
+    task = filter(lambda t: t["id"] == task_id, tasks)
+    if len(task) == 0:
+        abort(404)
+    if not request.json:
+        abort(400)
+    if "title" in request.json and type(request.json["title"]) != unicode:
+        abort(400)
+    if (
+        "description" in request.json
+        and type(request.json["description"]) is not unicode
+    ):
+        abort(400)
+    if "done" in request.json and type(request.json["done"]) is not bool:
+        abort(400)
+    task[0]["title"] = request.json.get("title", task[0]["title"])
+    task[0]["description"] = request.json.get("description", task[0]["description"])
+    task[0]["done"] = request.json.get("done", task[0]["done"])
+    return jsonify({"task": task[0]})
+
+
+@app.route("/api/users/<string:username>", methods=["DELETE"])
+def delete_user(username):
+    user = User.query.filter(User.username == username).first()
+    if user is None:
+        abort(404)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"result": True})
+
+
+# user = User()
+# form = UserForm(request.form)
+# form.populate_obj(user)

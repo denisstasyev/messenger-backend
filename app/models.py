@@ -1,20 +1,36 @@
-from sqlalchemy.sql import func
+from datetime import datetime
 from app import db
+
+
+def model_as_dict(model):
+    dict_result = {}
+    for key in model.__mapper__.c.keys():
+        dict_result[key] = getattr(model, key)
+    return dict_result
 
 
 class User(db.Model):
     __tablename__ = "users"
-    id = db.Column("user_id", db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), index=True, unique=True, nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
-    created_at = db.Column(db.DateTime(), server_default=func.utcnow())
-    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
+    created_at = db.Column(db.DateTime(), default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.utcnow)
     email = db.Column(db.String(120), unique=True)
 
-    messages = db.relationship("Message", backref="user_owner", lazy="dynamic")
-    attachments = db.relationship("Attachment", backref="user_owner", lazy="dynamic")
-    memberships = db.relationship("Member", backref="user_owner", lazy="dynamic")
+    messages = db.relationship(
+        "Message", backref="user_owner", lazy="dynamic", foreign_keys="Message.user_id"
+    )
+    attachments = db.relationship(
+        "Attachment",
+        backref="user_owner",
+        lazy="dynamic",
+        foreign_keys="Attachment.user_id",
+    )
+    memberships = db.relationship(
+        "Member", backref="user_owner", lazy="dynamic", foreign_keys="Member.user_id"
+    )
 
     def __init__(self, username, first_name, last_name, email=None):
         self.username = username
@@ -23,9 +39,9 @@ class User(db.Model):
         self.email = email
 
     def __repr__(self):
-        return "<{}: id={}, username={}, first_name={}, last_name={}, created_at={}, updated_at={}>".format(
+        return "<{}: user_id={}, username={}, first_name={}, last_name={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
-            self.id,
+            self.user_id,
             self.username,
             self.first_name,
             self.last_name,
@@ -36,11 +52,11 @@ class User(db.Model):
 
 class Member(db.Model):
     __tablename__ = "members"
-    id = db.Column("member_id", db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
-    created_at = db.Column(db.DateTime, server_default=func.utcnow())
-    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.utcnow)
     new_messages = db.Column(db.Integer, default=0)
     last_read_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
@@ -51,9 +67,9 @@ class Member(db.Model):
         self.last_read_message_id = last_read_message_id
 
     def __repr__(self):
-        return "<{}: id={}, user_id={}, chat_id={}, created_at={}, updated_at={}>".format(
+        return "<{}: member_id={}, user_id={}, chat_id={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
-            self.id,
+            self.member_id,
             self.user_id,
             self.chat_id,
             self.created_at,
@@ -63,16 +79,25 @@ class Member(db.Model):
 
 class Chat(db.Model):
     __tablename__ = "chats"
-    id = db.Column("chat_id", db.Integer, primary_key=True)
+    chat_id = db.Column(db.Integer, primary_key=True)
     chatname = db.Column(db.String(120), index=True, nullable=False)
     is_public = db.Column(db.Boolean, nullable=False)
-    created_at = db.Column(db.DateTime, server_default=func.utcnow())
-    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.utcnow)
     last_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
-    messages = db.relationship("Message", backref="chat_owner", lazy="dynamic")
-    members = db.relationship("Member", backref="chat_owner", lazy="dynamic")
-    attachments = db.relationship("Attachment", backref="chat_owner", lazy="dynamic")
+    messages = db.relationship(
+        "Message", backref="chat_owner", lazy="dynamic", foreign_keys="Message.chat_id"
+    )
+    members = db.relationship(
+        "Member", backref="chat_owner", lazy="dynamic", foreign_keys="Member.chat_id"
+    )
+    attachments = db.relationship(
+        "Attachment",
+        backref="chat_owner",
+        lazy="dynamic",
+        foreign_keys="Attachment.chat_id",
+    )
 
     def __init__(self, chatname, is_public, last_message=None):
         self.chatname = chatname
@@ -80,9 +105,9 @@ class Chat(db.Model):
         self.last_message = last_message
 
     def __repr__(self):
-        return "<{}: id={}, chatname={}, is_public={}, created_at={}, updated_at={}>".format(
+        return "<{}: chat_id={}, chatname={}, is_public={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
-            self.id,
+            self.chat_id,
             self.chatname,
             self.is_public,
             self.created_at,
@@ -92,14 +117,19 @@ class Chat(db.Model):
 
 class Message(db.Model):
     __tablename__ = "messages"
-    id = db.Column("message_id", db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, primary_key=True)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
-    created_at = db.Column(db.DateTime, server_default=func.utcnow())
-    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.utcnow)
     text = db.Column(db.Text)
 
-    attachments = db.relationship("Attachment", backref="message_owner", lazy="dynamic")
+    attachments = db.relationship(
+        "Attachment",
+        backref="message_owner",
+        lazy="dynamic",
+        foreign_keys="Attachment.message_id",
+    )
 
     def __init__(self, chat_id, user_id, text=None):
         self.chat_id = chat_id
@@ -107,9 +137,9 @@ class Message(db.Model):
         self.text = text
 
     def __repr__(self):
-        return "<{}: id={}, chat_id={}, user_id={}, created_at={}, updated_at={}>".format(
+        return "<{}: message_id={}, chat_id={}, user_id={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
-            self.id,
+            self.message_id,
             self.chat_id,
             self.user_id,
             self.created_at,
@@ -119,11 +149,11 @@ class Message(db.Model):
 
 class Attachment(db.Model):
     __tablename__ = "attachments"
-    id = db.Column("attachment_id", db.Integer, primary_key=True)
+    attachment_id = db.Column(db.Integer, primary_key=True)
     attachment_type = db.Column(db.String(80), nullable=False)
     url = db.Column(db.String(500), nullable=False)
-    created_at = db.Column(db.DateTime, server_default=func.utcnow())
-    updated_at = db.Column(db.DateTime(), onupdate=func.utcnow())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime(), onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"))
     message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
@@ -138,9 +168,9 @@ class Attachment(db.Model):
         self.message_id = message_id
 
     def __repr__(self):
-        return "<{}: id={}, attachment_type={}, url={}, created_at={}, updated_at={}>".format(
+        return "<{}: attachment_id={}, attachment_type={}, url={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
-            self.id,
+            self.attachment_id,
             self.attachment_type,
             self.url,
             self.created_at,

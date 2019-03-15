@@ -1,0 +1,19 @@
+<!-- Jinja2 -->
+
+<html>
+
+<head>
+    {% if title %}
+    <title>{{title}} - messenger-backend</title>
+    {% else %}
+    <title>messenger-backend</title>
+    {% endif %}
+</head>
+
+<body>
+    <div>messenger-backend: <a href="/index/">Home</a></div>
+    <hr>
+    {% block content %}{% endblock %}
+</body>
+
+</html>
