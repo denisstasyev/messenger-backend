@@ -3,7 +3,7 @@ from app import app
 
 
 @app.route("/form/", methods=["GET", "POST"])
-def form():
+def fform():
     if request.method == "GET":
         return render_template("form.html")
         # return '''<html><head></head><body>
@@ -206,10 +206,10 @@ from app import app
 
 
 @app.route("/")
-@app.route("/index/")
+@app.route("/home/")
 @app.route("/<string:username>/")
 def index(username="guest"):
-    return render_template("index.html", title="Home", username=username)
+    return render_template("home.html", title="Home", username=username)
 
 
 ###################3
@@ -218,6 +218,7 @@ from flask import jsonify, request, make_response, url_for
 from app import app, db
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
+from .forms import UserForm
 
 
 @app.errorhandler(400)
@@ -273,6 +274,10 @@ def create_user():
         abort(400)
 
     username = request.json["username"]
+
+    if User.query.filter(User.username == username).first() is not None:
+        abort(400)
+
     first_name = request.json["first_name"]
     last_name = request.json["last_name"]
 
@@ -284,31 +289,39 @@ def create_user():
 
     db.session.add(user)
     db.session.commit()
-
-    # сделать проверку на уникальность username
     return jsonify({"user": make_public_user(model_as_dict(user))}), 201
 
 
-@app.route("/api/users/<int:task_id>", methods=["PUT"])
-def update_task(task_id):
-    task = filter(lambda t: t["id"] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
+@app.route("/api/users/<string:username>/", methods=["PUT"])
+def update_user(username):
     if not request.json:
         abort(400)
-    if "title" in request.json and type(request.json["title"]) != unicode:
-        abort(400)
-    if (
-        "description" in request.json
-        and type(request.json["description"]) is not unicode
-    ):
-        abort(400)
-    if "done" in request.json and type(request.json["done"]) is not bool:
-        abort(400)
-    task[0]["title"] = request.json.get("title", task[0]["title"])
-    task[0]["description"] = request.json.get("description", task[0]["description"])
-    task[0]["done"] = request.json.get("done", task[0]["done"])
-    return jsonify({"task": task[0]})
+
+    user = User.query.filter(User.username == username).first_or_404()
+
+    form = UserForm(obj=request.json)
+    form.populate_obj(user)
+
+    db.session.add(user)
+    db.session.commit()
+    # user = User.query.filter(User.username == username).first()
+    #############################
+    # if "title" in request.json and type(request.json["title"]) != unicode:
+    #     abort(400)
+    # if (
+    #     "description" in request.json
+    #     and type(request.json["description"]) is not unicode
+    # ):
+    #     abort(400)
+    # if "done" in request.json and type(request.json["done"]) is not bool:
+    #     abort(400)
+    # task[0]["title"] = request.json.get("title", task[0]["title"])
+    # task[0]["description"] = request.json.get("description", task[0]["description"])
+    # task[0]["done"] = request.json.get("done", task[0]["done"])
+    return jsonify({"user": make_public_user(model_as_dict(user))})
+
+
+##################
 
 
 @app.route("/api/users/<string:username>", methods=["DELETE"])
@@ -324,3 +337,5 @@ def delete_user(username):
 # user = User()
 # form = UserForm(request.form)
 # form.populate_obj(user)
+# print(request.json)
+
