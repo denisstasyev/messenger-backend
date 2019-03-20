@@ -218,6 +218,7 @@ from flask import jsonify, request, make_response, url_for
 from app import app, db
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
+
 from .forms import UserForm
 
 
@@ -292,18 +293,39 @@ def create_user():
     return jsonify({"user": make_public_user(model_as_dict(user))}), 201
 
 
+# from wtforms.ext.sqlalchemy.orm import model_form
+
+import wtforms_json
+
+wtforms_json.init()
+
+
 @app.route("/api/users/<string:username>/", methods=["PUT"])
 def update_user(username):
-    if not request.json:
-        abort(400)
+    # if not request.form:
+    #     abort(400)
 
     user = User.query.filter(User.username == username).first_or_404()
 
-    form = UserForm(obj=request.json)
-    form.populate_obj(user)
+    # UserForm = model_form(User)
+    form = UserForm.from_json(request.json)
+    print(form.validate())
 
-    db.session.add(user)
-    db.session.commit()
+    # form = UserForm(request.form)
+    print(request.form)
+    print(form.data)
+    print(request.form)
+    print(form.data)
+
+    print(form.validate())
+    print(form.errors)
+    # form.errors
+
+    # form.populate_obj(user)
+
+    # db.session.add(user)
+    # db.session.commit()
+
     # user = User.query.filter(User.username == username).first()
     #############################
     # if "title" in request.json and type(request.json["title"]) != unicode:
