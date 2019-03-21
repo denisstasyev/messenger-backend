@@ -1,4 +1,6 @@
 from datetime import datetime
+from sqlalchemy_utils import EmailType
+
 from app import db
 
 
@@ -17,7 +19,7 @@ class User(db.Model):
     last_name = db.Column(db.String(80), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
-    email = db.Column(db.String(120), unique=True)
+    email = db.Column(EmailType, unique=True)
 
     messages = db.relationship(
         "Message", backref="user_owner", lazy="dynamic", foreign_keys="Message.user_id"

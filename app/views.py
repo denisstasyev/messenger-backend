@@ -1,108 +1,5 @@
-from app import app
-
-
-@app.route("/login/", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        return jsonify(request.form)
-    else:
-        return render_template("auth/login.html")
-
-
-@app.route("/register/", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        return jsonify(request.form)
-    else:
-        return render_template("auth/register.html")
-
-
-##########
-
-
-@app.route("/search_users/", methods=["GET"])
-def search_users(query=None, limit=None):
-    """Поиск пользователей"""
-    return jsonify(users=["User1", "User2"])
-
-
-@app.route("/search_chats/", methods=["GET"])
-def search_chats(query=None, limit=None):
-    """Поиск среди чатов пользователя"""
-    return jsonify(chats=["Chat1", "Chat2"])
-
-
-@app.route("/list_chats/", methods=["GET"])
-def list_chats():
-    """Получение списка чатов пользователя"""
-    return jsonify(chats=["Chat1", "Chat2"])
-
-
-@app.route("/create_pers_chat/", methods=["GET", "POST"])
-def create_pers_chat(user_id=None):
-    """Создание персонального чата"""
-    if request.method == "POST":
-        return jsonify(chat="Chat")
-        # return jsonify(request.form)
-    return render_template("chats/create_pers_chat.html")
-
-
-@app.route("/create_group_chat/", methods=["GET", "POST"])
-def create_group_chat(topic=None):
-    """Создание группового чата"""
-    if request.method == "POST":
-        return jsonify(chat="Chat")
-        # return jsonify(request.form)
-    return render_template("chats/create_group_chat.html")
-
-
-@app.route("/add_members_to_group_chat/", methods=["POST"])
-def add_members_to_group_chat(chat_id=None, user_ids=None):
-    """Добавление участников в групповой чат"""
-    return jsonify()
-
-
-@app.route("/leave_group_chat/", methods=["POST"])
-def leave_group_chat(chat_id=None):
-    """Выход из групового чата"""
-    return jsonify()
-
-
-@app.route("/send_message/", methods=["POST"])
-def send_message(chat_id=None, content=None, attach_id=None):
-    """Отправка сообщения в чат"""
-    return jsonify(message="Message")
-
-
-@app.route("/read_message/", methods=["GET"])
-def read_message(message_id=None):
-    """Прочтение сообщения"""
-    return jsonify(chat="Chat")
-
-
-@app.route("/upload_file/", methods=["POST"])
-def upload_file(content=None, chat_id=None):
-    """Загрузка файла"""
-    return jsonify(attach="Attachment")
-
-
-###########################################
-
-
-from flask import render_template
-from app import app
-
-
-@app.route("/")
-@app.route("/home/")
-@app.route("/<string:username>/")
-def index(username="guest"):
-    return render_template("home.html", title="Home", username=username)
-
-
-###################3
-
 from flask import jsonify, request, abort, make_response, url_for
+from flask import render_template
 import wtforms_json
 
 from app import app, db
@@ -140,6 +37,7 @@ def make_public_uri_user(user):
     return new_user
 
 
+# curl -X GET http://std-messenger.com/api/users/
 @app.route("/api/users/", methods=["GET"])
 def get_users():
     """Get Users"""
@@ -148,6 +46,7 @@ def get_users():
     return jsonify({"users": list(map(make_public_uri_user, users))}), 200
 
 
+# curl -X GET http://std-messenger.com/api/users/denis/
 @app.route("/api/users/<string:username>/", methods=["GET"])
 def get_user(username):
     """Get User"""
@@ -155,7 +54,8 @@ def get_user(username):
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 200
 
 
-# curl -i -H "Content-Type: application/json" -X POST -d '{"username": "cool1", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/
+# curl -i -H "Content-Type: application/json" -X POST -d '{"username": "ddenis",
+#  "first_name": "DDenis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/
 @app.route("/api/users/", methods=["POST"])
 def create_user():
     """Create User"""
@@ -165,6 +65,7 @@ def create_user():
     form = UserForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     user = User()
@@ -175,7 +76,8 @@ def create_user():
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
 
-# curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "cool", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/cool/
+# curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "denis",
+#  "first_name": "Denis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/ddenis/
 @app.route("/api/users/<string:username>/", methods=["PUT"])
 def update_user(username):
     """Update User"""
@@ -186,6 +88,7 @@ def update_user(username):
     form = UserForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     form.populate_obj(user)
@@ -197,7 +100,7 @@ def update_user(username):
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 202
 
 
-# curl -X DELETE  http://std-messenger.com/api/users/test/
+# curl -X DELETE  http://std-messenger.com/api/users/denis/
 @app.route("/api/users/<string:username>/", methods=["DELETE"])
 def delete_user(username):
     """Delete User"""
@@ -249,6 +152,7 @@ def create_member():
     form = MemberForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     member = Member()
@@ -269,6 +173,7 @@ def update_member(member_id):
     form = MemberForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     form.populate_obj(member)
@@ -331,6 +236,7 @@ def create_chat():
     form = ChatForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     chat = Chat()
@@ -351,6 +257,7 @@ def update_chat(chatname):
     form = ChatForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     form.populate_obj(chat)
@@ -413,6 +320,7 @@ def create_message():
     form = MessageForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     message = Message()
@@ -433,6 +341,7 @@ def update_message(message_id):
     form = MessageForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     form.populate_obj(message)
@@ -464,7 +373,9 @@ def make_public_uri_attachment(attachment):
     for field in attachment:
         if field == "attachment_id":
             new_attachment["uri"] = url_for(
-                "get_attachment", attachment_id=attachment["attachment_id"], _external=True
+                "get_attachment",
+                attachment_id=attachment["attachment_id"],
+                _external=True,
             )
         else:
             new_attachment[field] = attachment[field]
@@ -476,14 +387,22 @@ def get_attachments():
     """Get Attachments"""
     attachments = Attachment.query.all()
     attachments = [model_as_dict(attachment) for attachment in attachments]
-    return jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
+    return (
+        jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}),
+        200,
+    )
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["GET"])
 def get_attachment(attachment_id):
     """Get Attachment"""
-    attachment = Attachment.query.filter(Attachment.attachment_id == attachment_id).first_or_404()
-    return jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}), 200
+    attachment = Attachment.query.filter(
+        Attachment.attachment_id == attachment_id
+    ).first_or_404()
+    return (
+        jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}),
+        200,
+    )
 
 
 @app.route("/api/attachments/", methods=["POST"])
@@ -495,6 +414,7 @@ def create_attachment():
     form = AttachmentForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     attachment = Attachment()
@@ -502,7 +422,10 @@ def create_attachment():
 
     db.session.add(attachment)
     db.session.commit()
-    return jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}), 201
+    return (
+        jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}),
+        201,
+    )
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["PUT"])
@@ -511,27 +434,130 @@ def update_attachment(attachment_id):
     if not request.json:
         abort(400)
 
-    attachment = Attachment.query.filter(Attachment.attachment_id == attachment_id).first_or_404()
+    attachment = Attachment.query.filter(
+        Attachment.attachment_id == attachment_id
+    ).first_or_404()
     form = AttachmentForm.from_json(request.json)
 
     if not form.validate():
+        print(form.errors)
         abort(400)
 
     form.populate_obj(attachment)
 
-    db.session.query(Attachment).filter(Attachment.attachment_id == attachment.attachment_id).update(
-        model_as_dict(attachment)
-    )
+    db.session.query(Attachment).filter(
+        Attachment.attachment_id == attachment.attachment_id
+    ).update(model_as_dict(attachment))
     db.session.commit()
-    return jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}), 202
+    return (
+        jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}),
+        202,
+    )
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["DELETE"])
 def delete_attachment(attachment_id):
     """Delete Attachment"""
-    attachment = Attachment.query.filter(Attachment.attachment_id == attachment_id).first()
+    attachment = Attachment.query.filter(
+        Attachment.attachment_id == attachment_id
+    ).first()
     if attachment is None:
         abort(404)
     db.session.delete(attachment)
     db.session.commit()
     return jsonify({"result": True}), 200
+
+
+# Some other API's functions
+
+
+@app.route("/")
+@app.route("/home/")
+@app.route("/<string:username>/")
+def index(username="guest"):
+    return render_template("home.html", title="Home", username=username)
+
+
+# @app.route("/login/", methods=["GET", "POST"])
+# def login():
+#     if request.method == "POST":
+#         return jsonify(request.form)
+#     else:
+#         return render_template("auth/login.html")
+
+
+# @app.route("/register/", methods=["GET", "POST"])
+# def register():
+#     if request.method == "POST":
+#         return jsonify(request.form)
+#     else:
+#         return render_template("auth/register.html")
+
+
+# ##########
+
+
+# @app.route("/search_users/", methods=["GET"])
+# def search_users(query=None, limit=None):
+#     """Поиск пользователей"""
+#     return jsonify(users=["User1", "User2"])
+
+
+# @app.route("/search_chats/", methods=["GET"])
+# def search_chats(query=None, limit=None):
+#     """Поиск среди чатов пользователя"""
+#     return jsonify(chats=["Chat1", "Chat2"])
+
+
+# @app.route("/list_chats/", methods=["GET"])
+# def list_chats():
+#     """Получение списка чатов пользователя"""
+#     return jsonify(chats=["Chat1", "Chat2"])
+
+
+# @app.route("/create_pers_chat/", methods=["GET", "POST"])
+# def create_pers_chat(user_id=None):
+#     """Создание персонального чата"""
+#     if request.method == "POST":
+#         return jsonify(chat="Chat")
+#         # return jsonify(request.form)
+#     return render_template("chats/create_pers_chat.html")
+
+
+# @app.route("/create_group_chat/", methods=["GET", "POST"])
+# def create_group_chat(topic=None):
+#     """Создание группового чата"""
+#     if request.method == "POST":
+#         return jsonify(chat="Chat")
+#         # return jsonify(request.form)
+#     return render_template("chats/create_group_chat.html")
+
+
+# @app.route("/add_members_to_group_chat/", methods=["POST"])
+# def add_members_to_group_chat(chat_id=None, user_ids=None):
+#     """Добавление участников в групповой чат"""
+#     return jsonify()
+
+
+# @app.route("/leave_group_chat/", methods=["POST"])
+# def leave_group_chat(chat_id=None):
+#     """Выход из групового чата"""
+#     return jsonify()
+
+
+# @app.route("/send_message/", methods=["POST"])
+# def send_message(chat_id=None, content=None, attach_id=None):
+#     """Отправка сообщения в чат"""
+#     return jsonify(message="Message")
+
+
+# @app.route("/read_message/", methods=["GET"])
+# def read_message(message_id=None):
+#     """Прочтение сообщения"""
+#     return jsonify(chat="Chat")
+
+
+# @app.route("/upload_file/", methods=["POST"])
+# def upload_file(content=None, chat_id=None):
+#     """Загрузка файла"""
+#     return jsonify(attach="Attachment")
