@@ -91,21 +91,6 @@ def upload_file(content=None, chat_id=None):
 ### Creation API methods
 
 
-@app.route("/api/create_chat/<string:chatname>", methods=["POST"])
-def create_chat(chatname):
-    """Create Chat"""
-    if not request.form.get("is_public", type=bool):
-        raise RuntimeError("Missing is_public")
-
-    is_public = request.form.get("is_public", type=bool)
-    last_message = request.form.get("last_message", default=None, type=int)
-
-    chat = Chat(chatname, is_public, last_message)
-    db.session.add(chat)
-    db.session.commit()
-    return chat.__repr__()
-
-
 @app.route("/api/create_message", methods=["POST"])
 def create_message():
     """Create Message in chat"""
@@ -305,7 +290,7 @@ def get_member(member_id):
 
 @app.route("/api/members/", methods=["POST"])
 def create_member():
-    """Create Members"""
+    """Create Member"""
     if not request.json:
         abort(400)
 
@@ -437,3 +422,82 @@ def delete_chat(chatname):
 
 
 # REST API for Message
+
+
+def make_public_uri_message(message):
+    """Create URI for Message"""
+    new_message = {}
+    for field in message:
+        if field == "message_id":
+            new_message["uri"] = url_for(
+                "get_message", message_id=message["message_id"], _external=True
+            )
+        else:
+            new_message[field] = message[field]
+    return new_message
+
+
+@app.route("/api/messages/", methods=["GET"])
+def get_messages():
+    """Get Messages"""
+    messages = Message.query.all()
+    messages = [model_as_dict(message) for message in messages]
+    return jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
+
+
+@app.route("/api/messages/<int:message_id>/", methods=["GET"])
+def get_message(message_id):
+    """Get Message"""
+    message = Message.query.filter(Message.message_id == message_id).first_or_404()
+    return jsonify({"message": make_public_uri_message(model_as_dict(message))}), 200
+
+
+@app.route("/api/messages/", methods=["POST"])
+def create_message():
+    """Create Message"""
+    if not request.json:
+        abort(400)
+
+    form = MessageForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    message = Message()
+    form.populate_obj(message)
+
+    db.session.add(message)
+    db.session.commit()
+    return jsonify({"message": make_public_uri_message(model_as_dict(message))}), 201
+
+
+@app.route("/api/messages/<int:message_id>/", methods=["PUT"])
+def update_message(message_id):
+    """Update Message"""
+    if not request.json:
+        abort(400)
+
+    message = Message.query.filter(Message.message_id == message_id).first_or_404()
+    form = MessageForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    form.populate_obj(message)
+
+    db.session.query(Message).filter(Message.message_id == message.message_id).update(
+        model_as_dict(member)
+    )
+    db.session.commit()
+    return jsonify({"message": make_public_uri_message(model_as_dict(message))}), 202
+
+
+@app.route("/api/messages/<int:message_id>/", methods=["DELETE"])
+def delete_message(message_id):
+    """Delete Message"""
+    message = Message.query.filter(Message.message_id == message_id).first()
+    if message is None:
+        abort(404)
+    db.session.delete(message)
+    db.session.commit()
+    return jsonify({"result": True}), 200
