@@ -32,7 +32,7 @@ class User(db.Model):
         "Member", backref="user_owner", lazy="dynamic", foreign_keys="Member.user_id"
     )
 
-    def __init__(self, username, first_name, last_name, email=None):
+    def __init__(self, username=None, first_name=None, last_name=None, email=None):
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
@@ -60,7 +60,9 @@ class Member(db.Model):
     new_messages = db.Column(db.Integer, default=0)
     last_read_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
-    def __init__(self, user_id, chat_id, new_messages=None, last_read_message_id=None):
+    def __init__(
+        self, user_id=None, chat_id=None, new_messages=None, last_read_message_id=None
+    ):
         self.user_id = user_id
         self.chat_id = chat_id
         self.new_messages = new_messages
@@ -99,7 +101,7 @@ class Chat(db.Model):
         foreign_keys="Attachment.chat_id",
     )
 
-    def __init__(self, chatname, is_public, last_message=None):
+    def __init__(self, chatname=None, is_public=None, last_message=None):
         self.chatname = chatname
         self.is_public = is_public
         self.last_message = last_message
@@ -131,7 +133,7 @@ class Message(db.Model):
         foreign_keys="Attachment.message_id",
     )
 
-    def __init__(self, chat_id, user_id, text=None):
+    def __init__(self, chat_id=None, user_id=None, text=None):
         self.chat_id = chat_id
         self.user_id = user_id
         self.text = text
@@ -159,7 +161,12 @@ class Attachment(db.Model):
     message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
     def __init__(
-        self, attachment_type, url, user_id=None, chat_id=None, message_id=None
+        self,
+        attachment_type=None,
+        url=None,
+        user_id=None,
+        chat_id=None,
+        message_id=None,
     ):
         self.attachment_type = attachment_type
         self.url = url

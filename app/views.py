@@ -215,11 +215,15 @@ def index(username="guest"):
 ###################3
 
 from flask import jsonify, request, make_response, url_for
+import wtforms_json
+
 from app import app, db
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
-
 from .forms import UserForm
+
+
+wtforms_json.init()
 
 
 @app.errorhandler(400)
@@ -232,7 +236,7 @@ def not_found(error):
     return make_response(jsonify({"error": "Not found"}), 404)
 
 
-# API methods with User
+# REST API for User
 
 
 def make_public_user(user):
@@ -263,101 +267,56 @@ def get_user(username):
     return jsonify({"user": make_public_user(model_as_dict(user))})
 
 
+# curl -i -H "Content-Type: application/json" -X POST -d '{"username": "cool1", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/
 @app.route("/api/users/", methods=["POST"])
 def create_user():
     """Create User"""
-    if (
-        not request.json
-        or not "username" in request.json
-        or not "first_name" in request.json
-        or not "last_name" in request.json
-    ):
+    if not request.json:
         abort(400)
 
-    username = request.json["username"]
+    form = UserForm.from_json(request.json)
 
-    if User.query.filter(User.username == username).first() is not None:
+    if not form.validate():
         abort(400)
 
-    first_name = request.json["first_name"]
-    last_name = request.json["last_name"]
-
-    if "email" in request.json:
-        email = request.json["email"]
-        user = User(username, first_name, last_name, email)
-    else:
-        user = User(username, first_name, last_name)
+    user = User()
+    form.populate_obj(user)
 
     db.session.add(user)
     db.session.commit()
     return jsonify({"user": make_public_user(model_as_dict(user))}), 201
 
 
-# from wtforms.ext.sqlalchemy.orm import model_form
-
-import wtforms_json
-
-wtforms_json.init()
-
-
+# curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "cool", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/cool/
 @app.route("/api/users/<string:username>/", methods=["PUT"])
 def update_user(username):
-    # if not request.form:
-    #     abort(400)
+    """Update User"""
+    if not request.json:
+        abort(400)
 
     user = User.query.filter(User.username == username).first_or_404()
-
-    # UserForm = model_form(User)
     form = UserForm.from_json(request.json)
-    print(form.validate())
 
-    # form = UserForm(request.form)
-    print(request.form)
-    print(form.data)
-    print(request.form)
-    print(form.data)
+    if not form.validate():
+        abort(400)
 
-    print(form.validate())
-    print(form.errors)
-    # form.errors
+    form.populate_obj(user)
 
-    # form.populate_obj(user)
-
-    # db.session.add(user)
-    # db.session.commit()
-
-    # user = User.query.filter(User.username == username).first()
-    #############################
-    # if "title" in request.json and type(request.json["title"]) != unicode:
-    #     abort(400)
-    # if (
-    #     "description" in request.json
-    #     and type(request.json["description"]) is not unicode
-    # ):
-    #     abort(400)
-    # if "done" in request.json and type(request.json["done"]) is not bool:
-    #     abort(400)
-    # task[0]["title"] = request.json.get("title", task[0]["title"])
-    # task[0]["description"] = request.json.get("description", task[0]["description"])
-    # task[0]["done"] = request.json.get("done", task[0]["done"])
+    db.session.query(User).filter(User.user_id == user.user_id).update(
+        model_as_dict(user)
+    )
+    db.session.commit()
     return jsonify({"user": make_public_user(model_as_dict(user))})
 
 
-##################
-
-
-@app.route("/api/users/<string:username>", methods=["DELETE"])
+# curl -X DELETE  http://std-messenger.com/api/users/test/
+@app.route("/api/users/<string:username>/", methods=["DELETE"])
 def delete_user(username):
+    """Delete User"""
     user = User.query.filter(User.username == username).first()
     if user is None:
         abort(404)
     db.session.delete(user)
     db.session.commit()
     return jsonify({"result": True})
-
-
-# user = User()
-# form = UserForm(request.form)
-# form.populate_obj(user)
-# print(request.json)
 
