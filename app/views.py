@@ -1,28 +1,3 @@
-from flask import request, abort, jsonify, render_template
-from app import app
-
-
-@app.route("/form/", methods=["GET", "POST"])
-def fform():
-    if request.method == "GET":
-        return render_template("form.html")
-        # return '''<html><head></head><body>
-        # <form method="POST" action="/form/">
-        #     <input name="first_name" >
-        #     <input name="last_name" >
-        #     <input type="submit" >
-        # </form>
-        # </body></html>'''
-    else:
-        rv = jsonify(request.form)
-        return rv
-        # print(request.form)  # request.form - словарь
-        # abort(404)
-
-
-##########
-
-
 @app.route("/login/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -109,35 +84,8 @@ def upload_file(content=None, chat_id=None):
 
 
 ###########################################
-from flask import jsonify
-from app import app, db
-
-from .models import User, Member, Chat, Message, Attachment
-
 
 ### Creation API methods
-
-
-@app.route("/api/create_member", methods=["POST"])
-def create_member():
-    """Create Member of chat"""
-    if not request.form.get("user_id", type=int):
-        raise RuntimeError("Missing user_id")
-
-    if not request.form.get("chat_id", type=int):
-        raise RuntimeError("Missing chat_id")
-
-    user_id = request.form.get("user_id", type=int)
-    chat_id = request.form.get("chat_id", type=int)
-    new_messages = request.form.get("new_messages", default=0, type=int)
-    last_read_message_id = request.form.get(
-        "last_read_message_id", default=None, type=int
-    )
-
-    member = Member(user_id, chat_id, new_messages, last_read_message_id)
-    db.session.add(member)
-    db.session.commit()
-    return member.__repr__()
 
 
 @app.route("/api/create_chat/<string:chatname>", methods=["POST"])
@@ -214,13 +162,13 @@ def index(username="guest"):
 
 ###################3
 
-from flask import jsonify, request, make_response, url_for
+from flask import jsonify, request, abort, make_response, url_for
 import wtforms_json
 
 from app import app, db
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
-from .forms import UserForm
+from .forms import UserForm, MemberForm
 
 
 wtforms_json.init()
@@ -257,14 +205,14 @@ def get_users():
     """Get Users"""
     users = User.query.all()
     users = [model_as_dict(user) for user in users]
-    return jsonify({"users": list(map(make_public_user, users))})
+    return jsonify({"users": list(map(make_public_user, users))}), 200
 
 
 @app.route("/api/users/<string:username>/", methods=["GET"])
 def get_user(username):
     """Get User"""
     user = User.query.filter(User.username == username).first_or_404()
-    return jsonify({"user": make_public_user(model_as_dict(user))})
+    return jsonify({"user": make_public_user(model_as_dict(user))}), 200
 
 
 # curl -i -H "Content-Type: application/json" -X POST -d '{"username": "cool1", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/
@@ -306,7 +254,7 @@ def update_user(username):
         model_as_dict(user)
     )
     db.session.commit()
-    return jsonify({"user": make_public_user(model_as_dict(user))})
+    return jsonify({"user": make_public_user(model_as_dict(user))}), 202
 
 
 # curl -X DELETE  http://std-messenger.com/api/users/test/
@@ -318,5 +266,90 @@ def delete_user(username):
         abort(404)
     db.session.delete(user)
     db.session.commit()
-    return jsonify({"result": True})
+    return jsonify({"result": True}), 200
+
+
+# REST API for Member
+
+
+def make_public_member(member):
+    """Create URI for Member"""
+    new_member = {}
+    for field in member:
+        if field == "member_id":
+            new_member["uri"] = url_for(
+                "get_member", member_id=member["member_id"], _external=True
+            )
+        else:
+            new_member[field] = member[field]
+    return new_member
+
+
+@app.route("/api/members/", methods=["GET"])
+def get_members():
+    """Get Members"""
+    members = Member.query.all()
+    members = [model_as_dict(member) for member in members]
+    return jsonify({"members": list(map(make_public_member, members))}), 200
+
+
+@app.route("/api/members/<int:member_id>/", methods=["GET"])
+def get_member(member_id):
+    """Get Member"""
+    member = Member.query.filter(Member.member_id == member_id).first_or_404()
+    return jsonify({"member": make_public_member(model_as_dict(member))}), 200
+
+
+@app.route("/api/members/", methods=["POST"])
+def create_member():
+    """Create Member"""
+    if not request.json:
+        abort(400)
+
+    form = MemberForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    member = Member()
+    form.populate_obj(member)
+
+    db.session.add(member)
+    db.session.commit()
+    return jsonify({"member": make_public_member(model_as_dict(member))}), 201
+
+
+@app.route("/api/members/<int:member_id>/", methods=["PUT"])
+def update_member(member_id):
+    """Update Member"""
+    if not request.json:
+        abort(400)
+
+    member = Member.query.filter(Member.member_id == member_id).first_or_404()
+    form = MemberForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    form.populate_obj(member)
+
+    db.session.query(Member).filter(Member.member_id == member.member_id).update(
+        model_as_dict(member)
+    )
+    db.session.commit()
+    return jsonify({"member": make_public_member(model_as_dict(member))}), 202
+
+
+@app.route("/api/members/<int:member_id>/", methods=["DELETE"])
+def delete_member(member_id):
+    """Delete Member"""
+    member = Member.query.filter(Member.member_id == member_id).first()
+    if member is None:
+        abort(404)
+    db.session.delete(member)
+    db.session.commit()
+    return jsonify({"result": True}), 200
+
+
+# REST API for Chat
 
