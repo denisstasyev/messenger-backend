@@ -88,54 +88,6 @@ def upload_file(content=None, chat_id=None):
 
 ###########################################
 
-### Creation API methods
-
-
-@app.route("/api/create_message", methods=["POST"])
-def create_message():
-    """Create Message in chat"""
-    if not request.form.get("chat_id", type=int):
-        raise RuntimeError("Missing chat_id")
-
-    if not request.form.get("user_id", type=int):
-        raise RuntimeError("Missing user_id")
-
-    chat_id = request.form.get("chat_id", type=int)
-    user_id = request.form.get("user_id", type=int)
-    text = request.form.get("text", default=None, type=str)
-
-    message = Message(chat_id, user_id, text)
-    db.session.add(message)
-    db.session.commit()
-    return message.__repr__()
-
-
-@app.route("/api/create_attachment", methods=["POST"])
-def create_attachment():
-    """Create Attachment in message"""
-    if not request.form.get("attachment_type", type=str):
-        raise RuntimeError("Missing attachment_type")
-
-    if not request.form.get("url", type=str):
-        raise RuntimeError("Missing url")
-
-    attachment_type = request.form.get("attachment_type", type=str)
-    url = request.form.get("url", type=str)
-    user_id = request.form.get("user_id", type=int)
-    chat_id = request.form.get("chat_id", type=int)
-    message_id = request.form.get("message_id", type=int)
-
-    attachment = Attachment(attachment_type, url, user_id, chat_id, message_id)
-    db.session.add(attachment)
-    db.session.commit()
-    return attachment.__repr__()
-
-
-### Deletion API methods
-
-
-# https://flask-russian-docs.readthedocs.io/ru/latest/quickstart.html#public-server
-
 
 from flask import render_template
 from app import app
@@ -486,7 +438,7 @@ def update_message(message_id):
     form.populate_obj(message)
 
     db.session.query(Message).filter(Message.message_id == message.message_id).update(
-        model_as_dict(member)
+        model_as_dict(message)
     )
     db.session.commit()
     return jsonify({"message": make_public_uri_message(model_as_dict(message))}), 202
@@ -499,5 +451,87 @@ def delete_message(message_id):
     if message is None:
         abort(404)
     db.session.delete(message)
+    db.session.commit()
+    return jsonify({"result": True}), 200
+
+
+# REST API for Attachment
+
+
+def make_public_uri_attachment(attachment):
+    """Create URI for Attachment"""
+    new_attachment = {}
+    for field in attachment:
+        if field == "attachment_id":
+            new_attachment["uri"] = url_for(
+                "get_attachment", attachment_id=attachment["attachment_id"], _external=True
+            )
+        else:
+            new_attachment[field] = attachment[field]
+    return new_attachment
+
+
+@app.route("/api/attachments/", methods=["GET"])
+def get_attachments():
+    """Get Attachments"""
+    attachments = Attachment.query.all()
+    attachments = [model_as_dict(attachment) for attachment in attachments]
+    return jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
+
+
+@app.route("/api/attachments/<int:attachment_id>/", methods=["GET"])
+def get_attachment(attachment_id):
+    """Get Attachment"""
+    attachment = Attachment.query.filter(Attachment.attachment_id == attachment_id).first_or_404()
+    return jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}), 200
+
+
+@app.route("/api/attachments/", methods=["POST"])
+def create_attachment():
+    """Create Attachment"""
+    if not request.json:
+        abort(400)
+
+    form = AttachmentForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    attachment = Attachment()
+    form.populate_obj(attachment)
+
+    db.session.add(attachment)
+    db.session.commit()
+    return jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}), 201
+
+
+@app.route("/api/attachments/<int:attachment_id>/", methods=["PUT"])
+def update_attachment(attachment_id):
+    """Update Attachment"""
+    if not request.json:
+        abort(400)
+
+    attachment = Attachment.query.filter(Attachment.attachment_id == attachment_id).first_or_404()
+    form = AttachmentForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    form.populate_obj(attachment)
+
+    db.session.query(Attachment).filter(Attachment.attachment_id == attachment.attachment_id).update(
+        model_as_dict(attachment)
+    )
+    db.session.commit()
+    return jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}), 202
+
+
+@app.route("/api/attachments/<int:attachment_id>/", methods=["DELETE"])
+def delete_attachment(attachment_id):
+    """Delete Attachment"""
+    attachment = Attachment.query.filter(Attachment.attachment_id == attachment_id).first()
+    if attachment is None:
+        abort(404)
+    db.session.delete(attachment)
     db.session.commit()
     return jsonify({"result": True}), 200

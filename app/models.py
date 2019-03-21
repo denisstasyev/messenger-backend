@@ -154,7 +154,7 @@ class Attachment(db.Model):
     __tablename__ = "attachments"
     attachment_id = db.Column(db.Integer, primary_key=True)
     attachment_type = db.Column(db.String(80), nullable=False)
-    url = db.Column(db.String(500), nullable=False)
+    attachment_url = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))

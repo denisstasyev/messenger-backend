@@ -1,5 +1,5 @@
 from wtforms_alchemy import ModelForm
-from .models import User, Member, Chat, Message
+from .models import User, Member, Chat, Message, Attachment
 
 
 class UserForm(ModelForm):
@@ -24,3 +24,8 @@ class MessageForm(ModelForm):
         model = Message
         include = ["chat_id", "user_id"]
 
+
+class AttachmentForm(ModelForm):
+    class Meta:
+        model = Attachment
+        include = ["user_id", "chat_id", "message_id"]
