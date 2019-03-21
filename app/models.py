@@ -15,8 +15,8 @@ class User(db.Model):
     username = db.Column(db.String(80), index=True, unique=True, nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
-    created_at = db.Column(db.DateTime(), default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime(), default=None, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     email = db.Column(db.String(120), unique=True)
 
     messages = db.relationship(
@@ -56,7 +56,7 @@ class Member(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime(), default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     new_messages = db.Column(db.Integer, default=0)
     last_read_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
@@ -82,10 +82,11 @@ class Member(db.Model):
 class Chat(db.Model):
     __tablename__ = "chats"
     chat_id = db.Column(db.Integer, primary_key=True)
-    chatname = db.Column(db.String(120), index=True, nullable=False)
-    is_public = db.Column(db.Boolean, nullable=False)
+    chatname = db.Column(db.String(80), index=True, unique=True, nullable=False)
+    chat_title = db.Column(db.String(120), index=True)
+    is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime(), default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     last_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
     messages = db.relationship(
@@ -123,7 +124,7 @@ class Message(db.Model):
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime(), default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     text = db.Column(db.Text)
 
     attachments = db.relationship(
@@ -155,7 +156,7 @@ class Attachment(db.Model):
     attachment_type = db.Column(db.String(80), nullable=False)
     url = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime(), default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"))
     message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))

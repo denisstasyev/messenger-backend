@@ -1,3 +1,6 @@
+from app import app
+
+
 @app.route("/login/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -168,7 +171,7 @@ import wtforms_json
 from app import app, db
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
-from .forms import UserForm, MemberForm
+from .forms import UserForm, MemberForm, ChatForm, MessageForm, AttachmentForm
 
 
 wtforms_json.init()
@@ -187,7 +190,7 @@ def not_found(error):
 # REST API for User
 
 
-def make_public_user(user):
+def make_public_uri_user(user):
     """Create URI for User"""
     new_user = {}
     for field in user:
@@ -205,14 +208,14 @@ def get_users():
     """Get Users"""
     users = User.query.all()
     users = [model_as_dict(user) for user in users]
-    return jsonify({"users": list(map(make_public_user, users))}), 200
+    return jsonify({"users": list(map(make_public_uri_user, users))}), 200
 
 
 @app.route("/api/users/<string:username>/", methods=["GET"])
 def get_user(username):
     """Get User"""
     user = User.query.filter(User.username == username).first_or_404()
-    return jsonify({"user": make_public_user(model_as_dict(user))}), 200
+    return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 200
 
 
 # curl -i -H "Content-Type: application/json" -X POST -d '{"username": "cool1", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/
@@ -232,7 +235,7 @@ def create_user():
 
     db.session.add(user)
     db.session.commit()
-    return jsonify({"user": make_public_user(model_as_dict(user))}), 201
+    return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
 
 # curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "cool", "first_name": "Mike", "last_name": "Linerg"}' http://std-messenger.com/api/users/cool/
@@ -254,7 +257,7 @@ def update_user(username):
         model_as_dict(user)
     )
     db.session.commit()
-    return jsonify({"user": make_public_user(model_as_dict(user))}), 202
+    return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 202
 
 
 # curl -X DELETE  http://std-messenger.com/api/users/test/
@@ -272,7 +275,7 @@ def delete_user(username):
 # REST API for Member
 
 
-def make_public_member(member):
+def make_public_uri_member(member):
     """Create URI for Member"""
     new_member = {}
     for field in member:
@@ -290,19 +293,19 @@ def get_members():
     """Get Members"""
     members = Member.query.all()
     members = [model_as_dict(member) for member in members]
-    return jsonify({"members": list(map(make_public_member, members))}), 200
+    return jsonify({"members": list(map(make_public_uri_member, members))}), 200
 
 
 @app.route("/api/members/<int:member_id>/", methods=["GET"])
 def get_member(member_id):
     """Get Member"""
     member = Member.query.filter(Member.member_id == member_id).first_or_404()
-    return jsonify({"member": make_public_member(model_as_dict(member))}), 200
+    return jsonify({"member": make_public_uri_member(model_as_dict(member))}), 200
 
 
 @app.route("/api/members/", methods=["POST"])
 def create_member():
-    """Create Member"""
+    """Create Members"""
     if not request.json:
         abort(400)
 
@@ -316,7 +319,7 @@ def create_member():
 
     db.session.add(member)
     db.session.commit()
-    return jsonify({"member": make_public_member(model_as_dict(member))}), 201
+    return jsonify({"member": make_public_uri_member(model_as_dict(member))}), 201
 
 
 @app.route("/api/members/<int:member_id>/", methods=["PUT"])
@@ -337,7 +340,7 @@ def update_member(member_id):
         model_as_dict(member)
     )
     db.session.commit()
-    return jsonify({"member": make_public_member(model_as_dict(member))}), 202
+    return jsonify({"member": make_public_uri_member(model_as_dict(member))}), 202
 
 
 @app.route("/api/members/<int:member_id>/", methods=["DELETE"])
@@ -353,3 +356,84 @@ def delete_member(member_id):
 
 # REST API for Chat
 
+
+def make_public_uri_chat(chat):
+    """Create URI for Chat"""
+    new_chat = {}
+    for field in chat:
+        if field == "chat_id":
+            new_chat["uri"] = url_for(
+                "get_chat", chat_id=chat["chat_id"], _external=True
+            )
+        else:
+            new_chat[field] = chat[field]
+    return new_chat
+
+
+@app.route("/api/chats/", methods=["GET"])
+def get_chats():
+    """Get Chats"""
+    chats = Chat.query.all()
+    chats = [model_as_dict(chat) for chat in chats]
+    return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
+
+
+@app.route("/api/chats/<string:chatname>/", methods=["GET"])
+def get_chat(chatname):
+    """Get Chat"""
+    chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
+    return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 200
+
+
+@app.route("/api/chats/", methods=["POST"])
+def create_chat():
+    """Create Chat"""
+    if not request.json:
+        abort(400)
+
+    form = ChatForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    chat = Chat()
+    form.populate_obj(chat)
+
+    db.session.add(chat)
+    db.session.commit()
+    return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 201
+
+
+@app.route("/api/chats/<string:chatname>/", methods=["PUT"])
+def update_chat(chatname):
+    """Update Chat"""
+    if not request.json:
+        abort(400)
+
+    chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
+    form = ChatForm.from_json(request.json)
+
+    if not form.validate():
+        abort(400)
+
+    form.populate_obj(chat)
+
+    db.session.query(Chat).filter(Chat.chat_id == chat.chat_id).update(
+        model_as_dict(chat)
+    )
+    db.session.commit()
+    return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 202
+
+
+@app.route("/api/chats/<string:chatname>/", methods=["DELETE"])
+def delete_chat(chatname):
+    """Delete Chat"""
+    chat = Chat.query.filter(Chat.chatname == chatname).first()
+    if chat is None:
+        abort(404)
+    db.session.delete(chat)
+    db.session.commit()
+    return jsonify({"result": True}), 200
+
+
+# REST API for Message

@@ -1,5 +1,5 @@
 from wtforms_alchemy import ModelForm
-from .models import User, Member
+from .models import User, Member, Chat
 
 
 class UserForm(ModelForm):
@@ -12,3 +12,8 @@ class MemberForm(ModelForm):
         model = Member
         include = ["user_id", "chat_id", "last_read_message_id"]
 
+
+class ChatForm(ModelForm):
+    class Meta:
+        model = Chat
+        include = ["last_message_id"]
