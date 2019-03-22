@@ -4,14 +4,19 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
+from .flask_celery import make_celery
+
 app = Flask(__name__, instance_relative_config=True)
 
 app.config.from_object("config")
 app.config.from_pyfile("development.cfg", silent=True)
 
 db = SQLAlchemy(app)
-
 migrate = Migrate(app, db)
+
+celery = make_celery(app)
 
 from .views import *
 from .models import *
+
+from .tasks import *

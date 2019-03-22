@@ -40,3 +40,13 @@ You can use any migration commant via db postfix, for example:
 ```bash
 python3 run.py db upgrade
 ```
+
+## Celery
+Celery creates queue of tasks for asynchronous tasks:
+```bash
+celery -A app.celery worker --loglevel=INFO
+```
+To manage celery use Flower:
+```bash
+flower -A app.celery --port=5555
+```
