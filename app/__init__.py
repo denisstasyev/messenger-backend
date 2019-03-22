@@ -3,6 +3,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_mail import Mail
 
 from .flask_celery import make_celery
 
@@ -15,6 +16,8 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 celery = make_celery(app)
+
+mail = Mail(app)
 
 from .views import *
 from .models import *

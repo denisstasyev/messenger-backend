@@ -42,10 +42,15 @@ python3 run.py db upgrade
 ```
 
 ## Celery
-Celery creates queue of tasks for asynchronous tasks:
+Celery creates queue of asynchronous tasks. To enable asynchronous tasks run command below at the same time with Gunicorn command above:
 ```bash
 celery -A app.celery worker --loglevel=INFO
 ```
+For scheduled tasks run also Celery beat:
+```bash
+celery -A app.celery beat --loglevel=INFO
+```
+
 To manage celery use Flower:
 ```bash
 flower -A app.celery --port=5555

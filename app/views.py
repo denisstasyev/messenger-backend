@@ -3,6 +3,7 @@ from flask import render_template
 import wtforms_json
 
 from app import app, db
+from tasks import
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
 from .forms import UserForm, MemberForm, ChatForm, MessageForm, AttachmentForm
