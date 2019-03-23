@@ -4,7 +4,7 @@ import wtforms_json
 from flask_login import current_user, login_user, logout_user, login_required
 
 from app import app, db
-# from tasks import ##############################################################
+from .tasks import send_email
 
 from .models import User, Member, Chat, Message, Attachment, model_as_dict, load_user
 from .forms import UserForm, MemberForm, ChatForm, MessageForm, AttachmentForm, LoginForm, RegistrationForm
@@ -537,6 +537,7 @@ def login():
     return jsonify({"result": True}), 202
 
 
+# TODO: clean cookies after logout
 @app.route('/api/logout/', methods=['GET'])
 @login_required
 def logout():
@@ -567,17 +568,18 @@ def register():
 
     db.session.add(user)
     db.session.commit()
+
+    send_email.apply_async(("Registration",
+        [user.email],
+        "Successful registration in the STD-messenger",
+        render_template("registration_email.html", user=user, password=form.password.data)
+    ))
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
 
 # Some other API's functions
 
 
-@app.route("/")
-@app.route("/index/")
-@app.route("/<string:username>/")
-def index(username="guest"):
-    return render_template("index.html", title="Home", username=username)
 
 
 #################

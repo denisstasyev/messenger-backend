@@ -1,0 +1,25 @@
+<!-- Jinja2 -->
+
+<html>
+
+<head>
+    <title>Registration in the STD-messenger</title>
+</head>
+
+<body>
+    <div>
+        Dear {{user.first_name}} {{user.last_name}},<br>
+        <br>
+        congratulations, you have successfully registered in the STD-messenger!<br>
+        Your personal data:<br>
+        <ul>
+            <li>username: {{user.username}}<br></li>
+            <li>password: {{password}}<br></li>
+        </ul>
+    </div>
+    <hr>
+    Best regards,<br>
+    STD-messenger's team
+</body>
+
+</html>
