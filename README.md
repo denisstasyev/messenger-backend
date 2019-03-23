@@ -29,12 +29,6 @@ psql messenger-backend-development
 SELECT * FROM users;
 ```
 
-## Testing by hand views.py
-POST methods:
-```bash
-curl -d "first_name=Denis&last_name=Stasyev" http://std-messenger.com/api/create_user/unique_username
-```
-
 ## Flask-Migrate
 You can use any migration commant via db postfix, for example:
 ```bash

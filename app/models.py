@@ -1,7 +1,10 @@
-from datetime import datetime
-from sqlalchemy_utils import EmailType
+# pylint: disable=bad-continuation
 
-from app import db
+from datetime import datetime
+from sqlalchemy_utils import PasswordType, EmailType
+from flask_login import UserMixin
+
+from app import db, lm
 
 
 def model_as_dict(model):
@@ -11,12 +14,14 @@ def model_as_dict(model):
     return dict_result
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), index=True, unique=True, nullable=False)
+    password = db.Column(PasswordType(schemes=["pbkdf2_sha256"]))  # password hash
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
+    birth_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
     email = db.Column(EmailType, unique=True)
@@ -41,6 +46,7 @@ class User(db.Model):
         self.email = email
 
     def __repr__(self):
+        # pylint: disable=line-too-long
         return "<{}: user_id={}, username={}, first_name={}, last_name={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
             self.user_id,
@@ -50,6 +56,14 @@ class User(db.Model):
             self.created_at,
             self.updated_at,
         )
+
+    def get_id(self):
+        return self.user_id
+
+
+@lm.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 class Member(db.Model):
@@ -178,6 +192,7 @@ class Attachment(db.Model):
         self.message_id = message_id
 
     def __repr__(self):
+        # pylint: disable=line-too-long
         return "<{}: attachment_id={}, attachment_type={}, url={}, created_at={}, updated_at={}>".format(
             self.__class__.__name__,
             self.attachment_id,

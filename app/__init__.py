@@ -4,6 +4,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
+from flask_login import LoginManager
 
 from .flask_celery import make_celery
 
@@ -18,6 +19,8 @@ migrate = Migrate(app, db)
 celery = make_celery(app)
 
 mail = Mail(app)
+
+lm = LoginManager(app)
 
 from .views import *
 from .models import *

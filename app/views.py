@@ -1,12 +1,13 @@
-from flask import jsonify, request, abort, make_response, url_for
+from flask import jsonify, request, abort, make_response, url_for, session
 from flask import render_template
 import wtforms_json
+from flask_login import current_user, login_user, logout_user, login_required
 
 from app import app, db
-from tasks import
+# from tasks import ##############################################################
 
-from .models import User, Member, Chat, Message, Attachment, model_as_dict
-from .forms import UserForm, MemberForm, ChatForm, MessageForm, AttachmentForm
+from .models import User, Member, Chat, Message, Attachment, model_as_dict, load_user
+from .forms import UserForm, MemberForm, ChatForm, MessageForm, AttachmentForm, LoginForm, RegistrationForm
 
 
 wtforms_json.init()
@@ -33,13 +34,16 @@ def make_public_uri_user(user):
             new_user["uri"] = url_for(
                 "get_user", username=user["username"], _external=True
             )
+        elif field == "password":
+            pass
         else:
             new_user[field] = user[field]
     return new_user
 
 
-# curl -X GET http://std-messenger.com/api/users/
+# curl -X GET http://std-messenger.com/api/users/ --cookie "remember_token=...; session=..."
 @app.route("/api/users/", methods=["GET"])
+@login_required
 def get_users():
     """Get Users"""
     users = User.query.all()
@@ -47,17 +51,23 @@ def get_users():
     return jsonify({"users": list(map(make_public_uri_user, users))}), 200
 
 
-# curl -X GET http://std-messenger.com/api/users/denis/
+# curl -X GET http://std-messenger.com/api/users/denis/ --cookie "remember_token=...; session=..."
 @app.route("/api/users/<string:username>/", methods=["GET"])
+@login_required
 def get_user(username):
     """Get User"""
     user = User.query.filter(User.username == username).first_or_404()
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 200
 
 
+# TODO: DELETE create_user function or not allow User to create another User 
+
+
 # curl -i -H "Content-Type: application/json" -X POST -d '{"username": "ddenis",
 #  "first_name": "DDenis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/
+#  --cookie "remember_token=...; session=..."
 @app.route("/api/users/", methods=["POST"])
+@login_required
 def create_user():
     """Create User"""
     if not request.json:
@@ -79,18 +89,24 @@ def create_user():
 
 # curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "denis",
 #  "first_name": "Denis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/ddenis/
+#  --cookie "remember_token=...; session=..."
 @app.route("/api/users/<string:username>/", methods=["PUT"])
+@login_required
 def update_user(username):
     """Update User"""
     if not request.json:
         abort(400)
 
-    user = User.query.filter(User.username == username).first_or_404()
     form = UserForm.from_json(request.json)
 
     if not form.validate():
         print(form.errors)
         abort(400)
+
+    user = User.query.filter(User.username == username).first_or_404()
+
+    # if not current_user.user_id == user.user_id:
+    #     abort(400)
 
     form.populate_obj(user)
 
@@ -102,12 +118,19 @@ def update_user(username):
 
 
 # curl -X DELETE  http://std-messenger.com/api/users/denis/
+#  --cookie "remember_token=...; session=..."
 @app.route("/api/users/<string:username>/", methods=["DELETE"])
+@login_required
 def delete_user(username):
     """Delete User"""
     user = User.query.filter(User.username == username).first()
     if user is None:
         abort(404)
+
+    # if not current_user.user_id == user.user_id:
+    #     abort(400)
+        
+    # logout()
     db.session.delete(user)
     db.session.commit()
     return jsonify({"result": True}), 200
@@ -130,6 +153,7 @@ def make_public_uri_member(member):
 
 
 @app.route("/api/members/", methods=["GET"])
+@login_required
 def get_members():
     """Get Members"""
     members = Member.query.all()
@@ -145,6 +169,7 @@ def get_member(member_id):
 
 
 @app.route("/api/members/", methods=["POST"])
+@login_required
 def create_member():
     """Create Member"""
     if not request.json:
@@ -165,6 +190,7 @@ def create_member():
 
 
 @app.route("/api/members/<int:member_id>/", methods=["PUT"])
+@login_required
 def update_member(member_id):
     """Update Member"""
     if not request.json:
@@ -187,6 +213,7 @@ def update_member(member_id):
 
 
 @app.route("/api/members/<int:member_id>/", methods=["DELETE"])
+@login_required
 def delete_member(member_id):
     """Delete Member"""
     member = Member.query.filter(Member.member_id == member_id).first()
@@ -214,6 +241,7 @@ def make_public_uri_chat(chat):
 
 
 @app.route("/api/chats/", methods=["GET"])
+@login_required
 def get_chats():
     """Get Chats"""
     chats = Chat.query.all()
@@ -222,6 +250,7 @@ def get_chats():
 
 
 @app.route("/api/chats/<string:chatname>/", methods=["GET"])
+@login_required
 def get_chat(chatname):
     """Get Chat"""
     chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
@@ -229,6 +258,7 @@ def get_chat(chatname):
 
 
 @app.route("/api/chats/", methods=["POST"])
+@login_required
 def create_chat():
     """Create Chat"""
     if not request.json:
@@ -249,6 +279,7 @@ def create_chat():
 
 
 @app.route("/api/chats/<string:chatname>/", methods=["PUT"])
+@login_required
 def update_chat(chatname):
     """Update Chat"""
     if not request.json:
@@ -271,6 +302,7 @@ def update_chat(chatname):
 
 
 @app.route("/api/chats/<string:chatname>/", methods=["DELETE"])
+@login_required
 def delete_chat(chatname):
     """Delete Chat"""
     chat = Chat.query.filter(Chat.chatname == chatname).first()
@@ -298,6 +330,7 @@ def make_public_uri_message(message):
 
 
 @app.route("/api/messages/", methods=["GET"])
+@login_required
 def get_messages():
     """Get Messages"""
     messages = Message.query.all()
@@ -306,6 +339,7 @@ def get_messages():
 
 
 @app.route("/api/messages/<int:message_id>/", methods=["GET"])
+@login_required
 def get_message(message_id):
     """Get Message"""
     message = Message.query.filter(Message.message_id == message_id).first_or_404()
@@ -313,6 +347,7 @@ def get_message(message_id):
 
 
 @app.route("/api/messages/", methods=["POST"])
+@login_required
 def create_message():
     """Create Message"""
     if not request.json:
@@ -333,6 +368,7 @@ def create_message():
 
 
 @app.route("/api/messages/<int:message_id>/", methods=["PUT"])
+@login_required
 def update_message(message_id):
     """Update Message"""
     if not request.json:
@@ -355,6 +391,7 @@ def update_message(message_id):
 
 
 @app.route("/api/messages/<int:message_id>/", methods=["DELETE"])
+@login_required
 def delete_message(message_id):
     """Delete Message"""
     message = Message.query.filter(Message.message_id == message_id).first()
@@ -384,6 +421,7 @@ def make_public_uri_attachment(attachment):
 
 
 @app.route("/api/attachments/", methods=["GET"])
+@login_required
 def get_attachments():
     """Get Attachments"""
     attachments = Attachment.query.all()
@@ -395,6 +433,7 @@ def get_attachments():
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["GET"])
+@login_required
 def get_attachment(attachment_id):
     """Get Attachment"""
     attachment = Attachment.query.filter(
@@ -407,6 +446,7 @@ def get_attachment(attachment_id):
 
 
 @app.route("/api/attachments/", methods=["POST"])
+@login_required
 def create_attachment():
     """Create Attachment"""
     if not request.json:
@@ -430,6 +470,7 @@ def create_attachment():
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["PUT"])
+@login_required
 def update_attachment(attachment_id):
     """Update Attachment"""
     if not request.json:
@@ -457,6 +498,7 @@ def update_attachment(attachment_id):
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["DELETE"])
+@login_required
 def delete_attachment(attachment_id):
     """Delete Attachment"""
     attachment = Attachment.query.filter(
@@ -469,34 +511,76 @@ def delete_attachment(attachment_id):
     return jsonify({"result": True}), 200
 
 
+# Authorization API's functions
+
+
+@app.route('/api/login/', methods=['GET'])
+def login():
+    """Login User"""
+    if not request.json:
+        abort(400)
+    if current_user.is_authenticated:
+        return jsonify({"result": True}), 200
+    
+    form = LoginForm.from_json(request.json)
+    
+    if not form.validate():
+        print(form.errors)
+        abort(400)
+
+    user = User.query.filter(User.username == form.username.data).first_or_404()
+    if user is None or not (user.password == form.password.data):
+            return jsonify({"result": False}), 401
+
+    if not login_user(user, remember=form.remember_me.data):
+        return jsonify({"result": False}), 401
+    return jsonify({"result": True}), 202
+
+
+@app.route('/api/logout/', methods=['GET'])
+@login_required
+def logout():
+    """Logout User"""
+    logout_user()
+    # session.clear()
+    # resp.delete_cookie('username', path='/', domain='yourdomain.com')
+    return jsonify({"result": True}), 200
+
+
+@app.route('/api/register/', methods=['POST'])
+def register():
+    """Register User"""
+    if not request.json:
+        abort(400)
+    if current_user.is_authenticated:
+        return jsonify({"result": True}), 200
+
+
+    form = RegistrationForm.from_json(request.json)
+
+    if not form.validate():
+        print(form.errors)
+        abort(400)
+
+    user = User()
+    form.populate_obj(user)
+
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
+
+
 # Some other API's functions
 
 
 @app.route("/")
-@app.route("/home/")
+@app.route("/index/")
 @app.route("/<string:username>/")
 def index(username="guest"):
-    return render_template("home.html", title="Home", username=username)
+    return render_template("index.html", title="Home", username=username)
 
 
-# @app.route("/login/", methods=["GET", "POST"])
-# def login():
-#     if request.method == "POST":
-#         return jsonify(request.form)
-#     else:
-#         return render_template("auth/login.html")
-
-
-# @app.route("/register/", methods=["GET", "POST"])
-# def register():
-#     if request.method == "POST":
-#         return jsonify(request.form)
-#     else:
-#         return render_template("auth/register.html")
-
-
-# ##########
-
+#################
 
 # @app.route("/search_users/", methods=["GET"])
 # def search_users(query=None, limit=None):
