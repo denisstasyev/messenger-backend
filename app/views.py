@@ -4,10 +4,18 @@ import wtforms_json
 from flask_login import current_user, login_user, logout_user, login_required
 
 from app import app, db
-from .tasks import send_email
 
+from .tasks import send_email
 from .models import User, Member, Chat, Message, Attachment, model_as_dict, load_user
-from .forms import UserForm, MemberForm, ChatForm, MessageForm, AttachmentForm, LoginForm, RegistrationForm
+from .forms import (
+    UserForm,
+    MemberForm,
+    ChatForm,
+    MessageForm,
+    AttachmentForm,
+    LoginForm,
+    RegistrationForm,
+)
 
 
 wtforms_json.init()
@@ -60,7 +68,7 @@ def get_user(username):
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 200
 
 
-# TODO: DELETE create_user function or not allow User to create another User 
+# TODO: DELETE create_user function or not allow User to create another User
 
 
 # curl -i -H "Content-Type: application/json" -X POST -d '{"username": "ddenis",
@@ -129,7 +137,7 @@ def delete_user(username):
 
     # if not current_user.user_id == user.user_id:
     #     abort(400)
-        
+
     # logout()
     db.session.delete(user)
     db.session.commit()
@@ -514,23 +522,23 @@ def delete_attachment(attachment_id):
 # Authorization API's functions
 
 
-@app.route('/api/login/', methods=['GET'])
+@app.route("/api/login/", methods=["GET"])
 def login():
     """Login User"""
     if not request.json:
         abort(400)
     if current_user.is_authenticated:
         return jsonify({"result": True}), 200
-    
+
     form = LoginForm.from_json(request.json)
-    
+
     if not form.validate():
         print(form.errors)
         abort(400)
 
     user = User.query.filter(User.username == form.username.data).first_or_404()
     if user is None or not (user.password == form.password.data):
-            return jsonify({"result": False}), 401
+        return jsonify({"result": False}), 401
 
     if not login_user(user, remember=form.remember_me.data):
         return jsonify({"result": False}), 401
@@ -538,7 +546,7 @@ def login():
 
 
 # TODO: clean cookies after logout
-@app.route('/api/logout/', methods=['GET'])
+@app.route("/api/logout/", methods=["GET"])
 @login_required
 def logout():
     """Logout User"""
@@ -548,14 +556,13 @@ def logout():
     return jsonify({"result": True}), 200
 
 
-@app.route('/api/register/', methods=['POST'])
+@app.route("/api/register/", methods=["POST"])
 def register():
     """Register User"""
     if not request.json:
         abort(400)
     if current_user.is_authenticated:
         return jsonify({"result": True}), 200
-
 
     form = RegistrationForm.from_json(request.json)
 
@@ -569,17 +576,20 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    send_email.apply_async(("Registration",
-        [user.email],
-        "Successful registration in the STD-messenger",
-        render_template("registration_email.html", user=user, password=form.password.data)
-    ))
+    send_email.apply_async(
+        (
+            "Registration",
+            [user.email],
+            "Successful registration in the STD-messenger!",
+            render_template(
+                "email_registration.html", user=user, password=form.password.data
+            ),
+        )
+    )
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
 
 # Some other API's functions
-
-
 
 
 #################

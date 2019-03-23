@@ -16,6 +16,11 @@ app.config.from_pyfile("development.cfg", silent=True)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+app.config.update(
+    # Celery
+    result_backend="redis://localhost:6379",
+    broker_url="redis://localhost:6379",
+)
 celery = make_celery(app)
 
 mail = Mail(app)
@@ -25,4 +30,3 @@ lm = LoginManager(app)
 from .views import *
 from .models import *
 
-from .tasks import *
