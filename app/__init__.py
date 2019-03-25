@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
 from flask_login import LoginManager
+from werkzeug.contrib.cache import MemcachedCache
 
 from .flask_celery import make_celery
 
@@ -27,6 +28,7 @@ mail = Mail(app)
 
 lm = LoginManager(app)
 
+cache = MemcachedCache(["127.0.0.1:11211"])
+
 from .views import *
 from .models import *
-

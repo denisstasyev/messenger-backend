@@ -1,5 +1,5 @@
-from flask_mail import Message
 from datetime import datetime
+from flask_mail import Message
 from sqlalchemy import and_
 from flask import render_template
 

@@ -49,3 +49,9 @@ To manage celery use Flower:
 ```bash
 flower -A app.celery --port=5555
 ```
+
+## Memcashed
+```bash
+sudo apt install memcached
+sudo systemctl start memcached
+```
