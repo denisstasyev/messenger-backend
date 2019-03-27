@@ -4,11 +4,7 @@ This repository is only for Backend part of TechnoTrack FullStack development co
 ## Setup
 To setup this project:
 1) setup nginx in folder /configs;
-2) setup database:
-```bash
-flask db init
-flask db upgrade
-```;
+2) setup database;
 
 Run this project with commands:
 ```bash
