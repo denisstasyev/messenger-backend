@@ -40,7 +40,7 @@ Celery creates queue of asynchronous tasks. To enable asynchronous tasks run com
 ```bash
 celery -A app.celery worker --loglevel=INFO
 ```
-For scheduled tasks run also Celery beat:
+For scheduled tasks run also Celery Beat:
 ```bash
 celery -A app.celery beat --loglevel=INFO
 ```

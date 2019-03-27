@@ -97,12 +97,10 @@ def create_user():
     db.session.add(user)
     db.session.commit()
 
-    rv = cache.get("users")
-    if rv is None:
-        users = User.query.all()
-        users = [model_as_dict(user) for user in users]
-        rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-        cache.set("users", rv, timeout=5 * 60)
+    users = User.query.all()
+    users = [model_as_dict(user) for user in users]
+    rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
+    cache.set("users", rv, timeout=5 * 60)
 
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
@@ -135,12 +133,10 @@ def update_user(username):
     )
     db.session.commit()
 
-    rv = cache.get("users")
-    if rv is None:
-        users = User.query.all()
-        users = [model_as_dict(user) for user in users]
-        rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-        cache.set("users", rv, timeout=5 * 60)
+    users = User.query.all()
+    users = [model_as_dict(user) for user in users]
+    rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
+    cache.set("users", rv, timeout=5 * 60)
 
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 202
 
@@ -162,12 +158,10 @@ def delete_user(username):
     db.session.delete(user)
     db.session.commit()
 
-    rv = cache.get("users")
-    if rv is None:
-        users = User.query.all()
-        users = [model_as_dict(user) for user in users]
-        rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-        cache.set("users", rv, timeout=5 * 60)
+    users = User.query.all()
+    users = [model_as_dict(user) for user in users]
+    rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
+    cache.set("users", rv, timeout=5 * 60)
 
     return jsonify({"result": True}), 200
 
@@ -227,12 +221,10 @@ def create_member():
     db.session.add(member)
     db.session.commit()
 
-    rv = cache.get("members")
-    if rv is None:
-        members = Member.query.all()
-        members = [model_as_dict(member) for member in members]
-        rv = jsonify({"members": list(map(make_public_uri_member, members))}), 200
-        cache.set("members", rv, timeout=5 * 60)
+    members = Member.query.all()
+    members = [model_as_dict(member) for member in members]
+    rv = jsonify({"members": list(map(make_public_uri_member, members))}), 200
+    cache.set("members", rv, timeout=5 * 60)
 
     return jsonify({"member": make_public_uri_member(model_as_dict(member))}), 201
 
@@ -258,12 +250,10 @@ def update_member(member_id):
     )
     db.session.commit()
 
-    rv = cache.get("members")
-    if rv is None:
-        members = Member.query.all()
-        members = [model_as_dict(member) for member in members]
-        rv = jsonify({"members": list(map(make_public_uri_member, members))}), 200
-        cache.set("members", rv, timeout=5 * 60)
+    members = Member.query.all()
+    members = [model_as_dict(member) for member in members]
+    rv = jsonify({"members": list(map(make_public_uri_member, members))}), 200
+    cache.set("members", rv, timeout=5 * 60)
 
     return jsonify({"member": make_public_uri_member(model_as_dict(member))}), 202
 
@@ -278,12 +268,10 @@ def delete_member(member_id):
     db.session.delete(member)
     db.session.commit()
 
-    rv = cache.get("members")
-    if rv is None:
-        members = Member.query.all()
-        members = [model_as_dict(member) for member in members]
-        rv = jsonify({"members": list(map(make_public_uri_member, members))}), 200
-        cache.set("members", rv, timeout=5 * 60)
+    members = Member.query.all()
+    members = [model_as_dict(member) for member in members]
+    rv = jsonify({"members": list(map(make_public_uri_member, members))}), 200
+    cache.set("members", rv, timeout=5 * 60)
 
     return jsonify({"result": True}), 200
 
@@ -344,12 +332,10 @@ def create_chat():
     db.session.add(chat)
     db.session.commit()
 
-    rv = cache.get("chats")
-    if rv is None:
-        chats = Chat.query.all()
-        chats = [model_as_dict(chat) for chat in chats]
-        rv = jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
-        cache.set("chats", rv, timeout=5 * 60)
+    chats = Chat.query.all()
+    chats = [model_as_dict(chat) for chat in chats]
+    rv = jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
+    cache.set("chats", rv, timeout=5 * 60)
 
     return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 201
 
@@ -375,12 +361,10 @@ def update_chat(chatname):
     )
     db.session.commit()
 
-    rv = cache.get("chats")
-    if rv is None:
-        chats = Chat.query.all()
-        chats = [model_as_dict(chat) for chat in chats]
-        rv = jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
-        cache.set("chats", rv, timeout=5 * 60)
+    chats = Chat.query.all()
+    chats = [model_as_dict(chat) for chat in chats]
+    rv = jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
+    cache.set("chats", rv, timeout=5 * 60)
 
     return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 202
 
@@ -395,12 +379,10 @@ def delete_chat(chatname):
     db.session.delete(chat)
     db.session.commit()
 
-    rv = cache.get("chats")
-    if rv is None:
-        chats = Chat.query.all()
-        chats = [model_as_dict(chat) for chat in chats]
-        rv = jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
-        cache.set("chats", rv, timeout=5 * 60)
+    chats = Chat.query.all()
+    chats = [model_as_dict(chat) for chat in chats]
+    rv = jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
+    cache.set("chats", rv, timeout=5 * 60)
 
     return jsonify({"result": True}), 200
 
@@ -461,12 +443,10 @@ def create_message():
     db.session.add(message)
     db.session.commit()
 
-    rv = cache.get("messages")
-    if rv is None:
-        messages = Message.query.all()
-        messages = [model_as_dict(message) for message in messages]
-        rv = jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
-        cache.set("messages", rv, timeout=5 * 60)
+    messages = Message.query.all()
+    messages = [model_as_dict(message) for message in messages]
+    rv = jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
+    cache.set("messages", rv, timeout=5 * 60)
 
     return jsonify({"message": make_public_uri_message(model_as_dict(message))}), 201
 
@@ -492,12 +472,10 @@ def update_message(message_id):
     )
     db.session.commit()
 
-    rv = cache.get("messages")
-    if rv is None:
-        messages = Message.query.all()
-        messages = [model_as_dict(message) for message in messages]
-        rv = jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
-        cache.set("messages", rv, timeout=5 * 60)
+    messages = Message.query.all()
+    messages = [model_as_dict(message) for message in messages]
+    rv = jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
+    cache.set("messages", rv, timeout=5 * 60)
 
     return jsonify({"message": make_public_uri_message(model_as_dict(message))}), 202
 
@@ -512,12 +490,10 @@ def delete_message(message_id):
     db.session.delete(message)
     db.session.commit()
 
-    rv = cache.get("messages")
-    if rv is None:
-        messages = Message.query.all()
-        messages = [model_as_dict(message) for message in messages]
-        rv = jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
-        cache.set("messages", rv, timeout=5 * 60)
+    messages = Message.query.all()
+    messages = [model_as_dict(message) for message in messages]
+    rv = jsonify({"messages": list(map(make_public_uri_message, messages))}), 200
+    cache.set("messages", rv, timeout=5 * 60)
 
     return jsonify({"result": True}), 200
 
@@ -585,12 +561,10 @@ def create_attachment():
     db.session.add(attachment)
     db.session.commit()
 
-    rv = cache.get("attachments")
-    if rv is None:
-        attachments = Attachment.query.all()
-        attachments = [model_as_dict(attachment) for attachment in attachments]
-        rv = jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
-        cache.set("attachments", rv, timeout=5 * 60)
+    attachments = Attachment.query.all()
+    attachments = [model_as_dict(attachment) for attachment in attachments]
+    rv = jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
+    cache.set("attachments", rv, timeout=5 * 60)
 
     return (
         jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}),
@@ -621,12 +595,10 @@ def update_attachment(attachment_id):
     ).update(model_as_dict(attachment))
     db.session.commit()
 
-    rv = cache.get("attachments")
-    if rv is None:
-        attachments = Attachment.query.all()
-        attachments = [model_as_dict(attachment) for attachment in attachments]
-        rv = jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
-        cache.set("attachments", rv, timeout=5 * 60)
+    attachments = Attachment.query.all()
+    attachments = [model_as_dict(attachment) for attachment in attachments]
+    rv = jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
+    cache.set("attachments", rv, timeout=5 * 60)
 
     return (
         jsonify({"attachment": make_public_uri_attachment(model_as_dict(attachment))}),
@@ -646,12 +618,10 @@ def delete_attachment(attachment_id):
     db.session.delete(attachment)
     db.session.commit()
 
-    rv = cache.get("attachments")
-    if rv is None:
-        attachments = Attachment.query.all()
-        attachments = [model_as_dict(attachment) for attachment in attachments]
-        rv = jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
-        cache.set("attachments", rv, timeout=5 * 60)
+    attachments = Attachment.query.all()
+    attachments = [model_as_dict(attachment) for attachment in attachments]
+    rv = jsonify({"attachments": list(map(make_public_uri_attachment, attachments))}), 200
+    cache.set("attachments", rv, timeout=5 * 60)
 
     return jsonify({"result": True}), 200
 
@@ -713,16 +683,17 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    send_email.apply_async(
-        (
-            "Registration",
-            [user.email],
-            "Successful registration in the STD-messenger!",
-            render_template(
-                "email_registration.html", user=user, password=form.password.data
-            ),
+    if user.email is not None:
+        send_email.apply_async(
+            (
+                "Registration",
+                [user.email],
+                "Successful registration in the STD-messenger!",
+                render_template(
+                    "email_registration.html", user=user, password=form.password.data
+                ),
+            )
         )
-    )
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
 

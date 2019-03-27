@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_mail import Message
-from sqlalchemy import and_
+from sqlalchemy import and_, extract
 from flask import render_template
 
 from app import app, celery, mail
@@ -23,16 +23,23 @@ def send_email(subject, recipients, body, html):
 
 @celery.task(name="send_email_birthday")
 def send_email_birthday():
-    now = datetime.utcnow
+    now = datetime.utcnow()
     users = User.query.filter(
-        and_(User.birth_date.day == now.day, User.birth_date.month == now.month)
+        and_(
+            User.birth_date.isnot(None),
+            and_(
+                extract("day", User.birth_date) == now.day,
+                extract("month", User.birth_date) == now.month,
+            ),
+        )
     )
     for user in users:
-        send_email.apply_async(
-            (
-                "Happy Birthday",
-                [user.email],
-                "Happy Birthday!",
-                render_template("email_birthday.html", user=user),
+        if user.email is not None:
+            send_email.apply_async(
+                (
+                    "Happy Birthday",
+                    [user.email],
+                    "Happy Birthday!",
+                    render_template("email_birthday.html", user=user),
+                )
             )
-        )
