@@ -34,7 +34,7 @@ from .tasks import send_email_birthday
 celery.conf.beat_schedule = {
     "birthday-task": {
         "task": "send_email_birthday",
-        "schedule": crontab(hour=6, minute=38),
+        "schedule": crontab(hour=7, minute=0),
     }
 }
 # fmt: on

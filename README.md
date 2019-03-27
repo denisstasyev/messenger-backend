@@ -4,6 +4,10 @@ This repository is only for Backend part of TechnoTrack FullStack development co
 ## Setup
 To setup this project:
 1) setup nginx in folder /configs;
+2) ```bash
+flask db init
+flask db upgrade
+```;
 
 Run this project with commands:
 ```bash
@@ -50,7 +54,7 @@ To manage celery use Flower:
 flower -A app.celery --port=5555
 ```
 
-## Memcashed
+## Memcached
 ```bash
 sudo apt install memcached
 sudo systemctl start memcached
