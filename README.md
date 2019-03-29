@@ -16,7 +16,9 @@ cd messenger-backend/
 virtualenv venv
 pip3 install -r requirements.txt
 source venv/bin/activate
-
+```
+Change user from "denis" to your local user in ./routing_configs/nginx/messenger-backend.conf and change server_name to your (my: stasyev.chikenkiller.com)
+```bash
 cp ./routing_configs/nginx/messenger-backend.conf /etc/nginx/sites-available
 sudo ln -s /etc/nginx/sites-available/messenger-backend.conf /etc/nginx/sites-enabled
 sudo rm /etc/nginx/sites-enabled/default
@@ -28,9 +30,21 @@ touch ./instance/production.cfg
 flask db upgrade
 ```
 In production.cfg add SQLALCHEMY_DATABASE_URI (better to use Postgresql), MAIL_PASSWORD and SECRET_KEY.
-Finally change in app/__init__.py line to:
+Finally change in app/\__init__.py line to:
 ```python
 app.config.from_pyfile("production.cfg", silent=True)
+```
+HTTPS via Certbot
+```bash
+sudo apt-get update
+sudo apt-get install software-properties-common
+sudo add-apt-repository universe
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt-get update
+sudo apt-get install certbot python-certbot-nginx 
+
+sudo certbot --nginx
+sudo certbot renew --dry-run
 ```
 
 ## Run
