@@ -17,10 +17,10 @@ virtualenv venv
 pip3 install -r requirements.txt
 source venv/bin/activate
 ```
-Change user from "denis" to your local user in ./routing_configs/nginx/messenger-backend.conf and change server_name to your (my: stasyev.chikenkiller.com)
+Change user from "denis" to your local user in ./routing_configs/nginx/messenger-backend.conf, change server_name to your (my: stasyev.chikenkiller.com)
 ```bash
-cp ./routing_configs/nginx/messenger-backend.conf /etc/nginx/sites-available
-sudo ln -s /etc/nginx/sites-available/messenger-backend.conf /etc/nginx/sites-enabled
+cp ./routing_configs/nginx/stasyev.chickenkiller.com /etc/nginx/sites-available
+sudo ln -s /etc/nginx/sites-available/stasyev.chickenkiller.com /etc/nginx/sites-enabled
 sudo rm /etc/nginx/sites-enabled/default
 sudo systemctl restart nginx
 
@@ -59,7 +59,15 @@ gunicorn -c routing_configs/gunicorn/gunicorn.conf.py run:app
 ### Setup
 To setup this project:
 1) setup nginx in folder /configs;
-2) setup database;
+2) create database:
+```bash
+sudo apt install postgresql
+sudo -u postgres psql
+    CREATE USER denis WITH ENCRYPTED PASSWORD 'your_password';
+    CREATE DATABASE "messenger" OWNER denis;
+    GRANT ALL PRIVILEGES ON DATABASE "messenger" TO denis;
+```
+3) setup database via migrations.
 
 ### Database migrations
 ```bash

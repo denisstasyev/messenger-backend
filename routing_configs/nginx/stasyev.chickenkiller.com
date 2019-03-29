@@ -1,7 +1,7 @@
 server {
         listen 80;
 
-        server_name messenger-backend;
+        server_name stasyev.chickenkiller.com www.stasyev.chickenkiller.com;
 
         access_log /var/log/nginx/access.log;
         error_log /var/log/nginx/error.log;
