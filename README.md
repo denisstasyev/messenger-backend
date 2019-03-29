@@ -19,7 +19,7 @@ source venv/bin/activate
 ```
 Change user from "denis" to your local user in ./routing_configs/nginx/messenger-backend.conf, change server_name to your (my: stasyev.chikenkiller.com)
 ```bash
-cp ./routing_configs/nginx/stasyev.chickenkiller.com /etc/nginx/sites-available
+sudo cp ./routing_configs/nginx/stasyev.chickenkiller.com /etc/nginx/sites-available
 sudo ln -s /etc/nginx/sites-available/stasyev.chickenkiller.com /etc/nginx/sites-enabled
 sudo rm /etc/nginx/sites-enabled/default
 sudo systemctl restart nginx
@@ -41,7 +41,7 @@ sudo apt-get install software-properties-common
 sudo add-apt-repository universe
 sudo add-apt-repository ppa:certbot/certbot
 sudo apt-get update
-sudo apt-get install certbot python-certbot-nginx 
+sudo apt-get install certbot python-certbot-nginx -y
 
 sudo certbot --nginx
 sudo certbot renew --dry-run

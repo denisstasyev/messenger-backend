@@ -8,7 +8,7 @@ server {
 
         proxy_cache_valid 10m;
 
-        root /home/denis/messenger-backend/public;
+        root /home/ubuntu/www;
         index index.html;
 
         location /api {
@@ -26,7 +26,7 @@ server {
         }
 
         location /public {
-                alias /home/denis/messenger-backend/public;
+                alias /home/ubuntu/messenger-backend/public;
                 autoindex on;
         }
 
