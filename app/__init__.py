@@ -8,6 +8,9 @@ from flask_login import LoginManager
 from celery.schedules import crontab
 from werkzeug.contrib.cache import MemcachedCache
 
+# Profiler
+from werkzeug.contrib.profiler import ProfilerMiddleware
+
 from .flask_celery import make_celery
 
 app = Flask(__name__, instance_relative_config=True)
@@ -40,6 +43,9 @@ celery.conf.beat_schedule = {
 # fmt: on
 
 cache = MemcachedCache(["127.0.0.1:11211"])
+
+# Profiler
+app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
 from .views import *
 from .models import *
