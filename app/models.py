@@ -98,7 +98,9 @@ class Member(db.Model):
 class Chat(db.Model):
     __tablename__ = "chats"
     chat_id = db.Column(db.Integer, primary_key=True)
-    chatname = db.Column(db.String(80), index=True, unique=True, nullable=False)
+    chatname = db.Column(
+        db.String(80), index=True, unique=True, default="chat" + chat_id
+    )
     chat_title = db.Column(db.String(120), index=True)
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
