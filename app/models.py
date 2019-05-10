@@ -72,26 +72,18 @@ class Member(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
-    new_messages = db.Column(db.Integer, default=0)
-    last_read_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
 
-    def __init__(
-        self, user_id=None, chat_id=None, new_messages=None, last_read_message_id=None
-    ):
+    def __init__(self, user_id=None, chat_id=None):
         self.user_id = user_id
         self.chat_id = chat_id
-        self.new_messages = new_messages
-        self.last_read_message_id = last_read_message_id
 
     def __repr__(self):
-        return "<{}: member_id={}, user_id={}, chat_id={}, created_at={}, updated_at={}>".format(
+        return "<{}: member_id={}, user_id={}, chat_id={}, created_at={}>".format(
             self.__class__.__name__,
             self.member_id,
             self.user_id,
             self.chat_id,
             self.created_at,
-            self.updated_at,
         )
 
 
@@ -105,7 +97,7 @@ class Chat(db.Model):
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
-    last_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
+    creator_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
 
     messages = db.relationship(
         "Message", backref="chat_owner", lazy="dynamic", foreign_keys="Message.chat_id"
@@ -120,19 +112,19 @@ class Chat(db.Model):
         foreign_keys="Attachment.chat_id",
     )
 
-    def __init__(self, chatname=None, is_public=None, last_message=None):
+    def __init__(self, chatname=None, is_public=None):
         self.chatname = chatname
         self.is_public = is_public
-        self.last_message = last_message
 
     def __repr__(self):
-        return "<{}: chat_id={}, chatname={}, is_public={}, created_at={}, updated_at={}>".format(
+        return "<{}: chat_id={}, chatname={}, is_public={}, created_at={}, updated_at={}, creator_id={}>".format(
             self.__class__.__name__,
             self.chat_id,
             self.chatname,
             self.is_public,
             self.created_at,
             self.updated_at,
+            self.creator_id,
         )
 
 
@@ -175,9 +167,11 @@ class Attachment(db.Model):
     attachment_url = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"))
-    chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"))
-    message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=True)
+    message_id = db.Column(
+        db.Integer, db.ForeignKey("messages.message_id"), nullable=True
+    )
 
     def __init__(
         self,

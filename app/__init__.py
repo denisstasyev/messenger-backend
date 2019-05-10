@@ -9,7 +9,7 @@ from celery.schedules import crontab
 from werkzeug.contrib.cache import MemcachedCache
 
 # Profiler
-from werkzeug.contrib.profiler import ProfilerMiddleware
+# from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from .flask_celery import make_celery
 
@@ -24,6 +24,7 @@ migrate = Migrate(app, db)
 mail = Mail(app)
 
 lm = LoginManager(app)
+lm.init_app(app)
 
 # Turn off Black formatter
 # fmt: off
@@ -45,7 +46,7 @@ celery.conf.beat_schedule = {
 cache = MemcachedCache(["127.0.0.1:11211"])
 
 # Profiler
-app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
+# app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
 from .views import *
 from .models import *

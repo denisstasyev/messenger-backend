@@ -40,6 +40,11 @@ def bad_request(error):
     return make_response(jsonify({"error": "Bad request"}), 400)
 
 
+@app.errorhandler(403)
+def forbidden(error):
+    return make_response(jsonify({"error": "Forbidden"}), 403)
+
+
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify({"error": "Not found"}), 404)
@@ -48,7 +53,7 @@ def not_found(error):
 # Authorization API
 
 
-@app.route("/api/login/", methods=["GET"])
+@app.route("/api/login/", methods=["POST"])
 def login():
     """Login User"""
     if not request.json:
@@ -72,13 +77,11 @@ def login():
 
 
 # TODO: clean cookies after logout
-@app.route("/api/logout/", methods=["GET"])
+@app.route("/api/logout/", methods=["POST"])
 @login_required
 def logout():
     """Logout User"""
     logout_user()
-    # session.clear()
-    # resp.delete_cookie('username', path='/', domain='yourdomain.com')
     return jsonify({"result": True}), 200
 
 
@@ -141,6 +144,7 @@ def make_public_uri_user(user):
 
 
 # curl -X GET http://std-messenger.com/api/users/ --cookie "remember_token=...; session=..."
+#TODO: limit query to 10 replies
 @app.route("/api/get_users/", methods=["GET"])
 @login_required
 def get_users():
@@ -166,21 +170,22 @@ def get_user(username):
 # curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "denis",
 #  "first_name": "Denis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/ddenis/
 #  --cookie "remember_token=...; session=..."
-@app.route("/api/update_user/<string:username>/", methods=["PUT"])
+@app.route("/api/update_current_user/", methods=["PUT"])
 @login_required
-def update_user(username):
-    """Update User"""
+def update_current_user():
+    """Update current User"""
     if not request.json:
         abort(400)
 
-    if current_user.username != username:
-        abort(400)
+    username = current_user.username
 
     form = UserForm.from_json(request.json)
 
     if not form.validate():
         print(form.errors)
         abort(400)
+
+    logout()
 
     user = User.query.filter(User.username == username).first_or_404()
 
@@ -201,16 +206,40 @@ def update_user(username):
 
 # curl -X DELETE  http://std-messenger.com/api/users/denis/
 #  --cookie "remember_token=...; session=..."
-@app.route("/api/delete_user/<string:username>/", methods=["DELETE"])
+@app.route("/api/delete_current_user/", methods=["DELETE"])
 @login_required
-def delete_user(username):
-    """Delete User"""
-    if not current_user.username == username:
-        abort(400)
+def delete_current_user():
+    """Delete current User and all his data"""
+    username = current_user.username
 
     logout()
 
     user = User.query.filter(User.username == username).first_or_404()
+
+    db.session.query(Attachment).filter(Attachment.user_id == user.user_id).delete()
+    db.session.query(Member).filter(
+        Member.user_id == user.user_id
+    ).delete()  # TODO: как удалять файл из облака?
+    db.session.query(Message).filter(Message.user_id == user.user_id).delete()
+
+    db.session.execute(
+        'DELETE FROM members USING chats WHERE chats.chat_id = members.chat_id AND chats.creator_id = :param',
+        {"param": user.user_id}
+    )
+    db.session.execute(
+        'DELETE FROM messages USING chats WHERE chats.chat_id = messages.chat_id AND chats.creator_id = :param',
+        {"param": user.user_id}
+    )
+    db.session.query(Chat).filter(Chat.creator_id == user.user_id).delete()
+
+    db.session.query(Chat).filter(Chat.members is not None).delete()
+
+    db.session.query(Attachment).filter(
+        and_(
+            Attachment.user_id.is_(None),
+            and_(Attachment.chat_id.is_(None), Attachment.message_id.is_(None)),
+        )
+    ).delete()  # TODO: как удалять файл из облака?
 
     db.session.delete(user)
     db.session.commit()
@@ -224,9 +253,35 @@ def delete_user(username):
 
 
 # API for Member
-# TODO: To think about invitations to chats
 
 
+def make_public_member(member):
+    """Create public data of Member"""
+    user = User.query.filter(User.user_id == member["user_id"])
+    chat = Chat.query.filter(Chat.chat_id == member["chat_id"])
+
+    new_member = {}
+    new_member["username"] = user.username
+    new_member["chatname"] = chat.chatname
+    return new_member
+
+
+@app.route("/api/get_members/<string:chatname>/", methods=["GET"])
+@login_required
+def get_members(chatname):
+    """Get Members in Chat by Chat.chatname"""
+    chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
+    members = Member.query.filter(Member.chat_id == chat.chat_id)
+
+    user_ids = [member.user_id for member in members]
+    # Current User in this Chat
+    if not current_user.user_id in user_ids:
+        abort(403)
+
+    return jsonify({"members": make_public_member(model_as_dict(members))}), 200
+
+
+# Send json with username and chatname
 @app.route("/api/create_member/", methods=["POST"])
 @login_required
 def create_member():
@@ -240,56 +295,54 @@ def create_member():
         print(form.errors)
         abort(400)
 
-    member = Member()
+    user = User.query.filter(User.username == form.username.data).first_or_404()
+    chat = Chat.query.filter(Chat.chatname == form.chatname.data).first_or_404()
+
+    member = Member(user.user_id, chat.chat_id)
     form.populate_obj(member)
 
-    # only User themselves can join Chat
-    if member.user_id != current_user.user_id:
-        abort(400)
+    chat = Chat.query.filter(Chat.chat_id == member.chat_id).first_or_404()
+
+    if chat.is_public:
+        # only User themselves can join public Chat
+        if member.user_id != current_user.user_id:
+            abort(400)
+    else:
+        # only creator of private Chat can add User in private Chat
+        if current_user.user_id != chat.creator_id:
+            abort(400)
 
     db.session.add(member)
     db.session.commit()
 
-    return jsonify({"member": model_as_dict(member)}), 201
+    return jsonify({"member": make_public_member(model_as_dict(member))}), 201
 
 
-@app.route("/api/update_member/<int:member_id>/", methods=["PUT"])
+@app.route("/api/delete_member/", methods=["DELETE"])
 @login_required
-def update_member(member_id):
-    """Update Member"""
+def delete_member():
+    """Delete Member"""
     if not request.json:
         abort(400)
 
-    member = Member.query.filter(Member.member_id == member_id).first_or_404()
     form = MemberForm.from_json(request.json)
 
     if not form.validate():
         print(form.errors)
         abort(400)
 
-    form.populate_obj(member)
+    user = User.query.filter(User.username == form.username.data).first_or_404()
+    chat = Chat.query.filter(Chat.chatname == form.chatname.data).first_or_404()
 
-    # only User themselves can update his Member
-    if member.user_id != current_user.user_id:
+    member = Member.query.filter(and_(Member.user_id == user.user_id, Member.chat_id == chat.chat_id)).first_or_404()
+
+    # only User themselves and Chat.creator_id can remove User from Chat
+    # if Chat.creator_id leaves Chat then this Chat is deleted
+    if not (current_user.user_id in [member.user_id, chat.creator_id]):
         abort(400)
 
-    db.session.query(Member).filter(Member.member_id == member.member_id).update(
-        model_as_dict(member)
-    )
-    db.session.commit()
-
-    return jsonify({"member": model_as_dict(member)}), 202
-
-
-@app.route("/api/delete_member/<int:member_id>/", methods=["DELETE"])
-@login_required
-def delete_member(member_id):
-    """Delete Member"""
-    member = Member.query.filter(Member.member_id == member_id).first_or_404()
-
-    # only User themselves can leave Chat
-    if member.user_id != current_user.user_id:
-        abort(400)
+    if chat.creator_id == member.user_id:
+        delete_chat(chat.chatname) #TODO: to think about order of deletions!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     db.session.delete(member)
     db.session.commit()
@@ -306,7 +359,7 @@ def make_public_uri_chat(chat):
     for field in chat:
         if field == "chat_id":
             new_chat["uri"] = url_for(
-                "get_chat", chat_id=chat["chat_id"], _external=True
+                "get_chat", chatname=chat["chatname"], _external=True
             )
         else:
             new_chat[field] = chat[field]
@@ -340,7 +393,7 @@ def get_chat(chatname):
 @login_required
 def create_chat():
     """Create Chat"""
-    if not request.json:
+    if not request.json:  # title not null СДЕЛАТЬ МИГРАЦИЮ !!!!!!!
         abort(400)
 
     form = ChatForm.from_json(request.json)
@@ -352,9 +405,12 @@ def create_chat():
     chat = Chat()
     form.populate_obj(chat)
 
+    db.session.add(chat)
+    db.session.flush()  ###
+
+    db.session.refresh(chat)  ###
     member = Member(current_user.user_id, chat.chat_id)
 
-    db.session.add(chat)
     db.session.add(member)
     db.session.commit()
 
@@ -370,7 +426,10 @@ def update_chat(chatname):
 
     chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
 
-    if not chat.chat_id == any_(current_user.memberships).chat_id:
+    # curl -i -H "Content-Type: application/json" -X PUT -d '{"chat_title": "topic"}' http://std-messenger.com/api/update_chat/chat3/ --cookie "session=.eJwdzj0OgzAMQOG7eGZI_JM4XAbZ2BFdoUxV717U7S2f9D6wzTOvA9b3eecC2ytghdIJtYcEqqNOCs2Row-p4m7Gc0ZUNNRau7kUCtlN3Sa7s0lao_4UZ0xtgjsS18e3uQ_1tCHqxZStjFKrumsrLbl552AiabDAfeX5n6HvD2FaLtA.XJ-p1Q.Wd4T-Q-swYJrZ-fSbhckMs7xAIQ"
+    if (
+        not chat.chat_id == any_(current_user.memberships).chat_id
+    ):  # This line doesn't work
         abort(400)
 
     form = ChatForm.from_json(request.json)
@@ -589,6 +648,7 @@ def update_attachment(attachment_id):
 @login_required
 def delete_attachment(attachment_id):
     """Delete Attachment"""
+    # TODO: как удалять файл из облака?
     attachment = Attachment.query.filter(
         and_(
             Attachment.attachment_id == attachment_id,

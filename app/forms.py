@@ -1,4 +1,4 @@
-from wtforms_alchemy import ModelForm
+from wtforms_alchemy import ModelForm, Form
 from wtforms import StringField, PasswordField, BooleanField
 from wtforms.validators import DataRequired, EqualTo
 
@@ -13,16 +13,14 @@ class UserForm(ModelForm):
         model = User
 
 
-class MemberForm(ModelForm):
-    class Meta:
-        model = Member
-        include = ["user_id", "chat_id", "last_read_message_id"]
+class MemberForm(Form):
+    username = StringField("username", validators=[DataRequired()])
+    chatname = StringField("chatname", validators=[DataRequired()])
 
 
 class ChatForm(ModelForm):
     class Meta:
         model = Chat
-        include = ["last_message_id"]
 
 
 class MessageForm(ModelForm):
