@@ -23,7 +23,7 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(80), nullable=False)
     birth_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     email = db.Column(EmailType, unique=True)
 
     messages = db.relationship(
@@ -96,7 +96,7 @@ class Chat(db.Model):
     chat_title = db.Column(db.String(120), index=True)
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     creator_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
 
     messages = db.relationship(
@@ -112,7 +112,8 @@ class Chat(db.Model):
         foreign_keys="Attachment.chat_id",
     )
 
-    def __init__(self, chatname=None, is_public=None):
+    def __init__(self, creator_id=None, chatname=None, is_public=None):
+        self.creator_id = creator_id
         self.chatname = chatname
         self.is_public = is_public
 
@@ -134,7 +135,7 @@ class Message(db.Model):
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     text = db.Column(db.Text)
 
     attachments = db.relationship(
@@ -166,7 +167,7 @@ class Attachment(db.Model):
     attachment_type = db.Column(db.String(80), nullable=False)
     attachment_url = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=None, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=True)
     message_id = db.Column(

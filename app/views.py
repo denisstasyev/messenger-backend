@@ -257,8 +257,8 @@ def delete_current_user():
 
 def make_public_member(member):
     """Create public data of Member"""
-    user = User.query.filter(User.user_id == member["user_id"])
-    chat = Chat.query.filter(Chat.chat_id == member["chat_id"])
+    user = User.query.filter(User.user_id == member["user_id"]).first_or_404()
+    chat = Chat.query.filter(Chat.chat_id == member["chat_id"]).first_or_404()
 
     new_member = {}
     new_member["username"] = user.username
@@ -271,14 +271,15 @@ def make_public_member(member):
 def get_members(chatname):
     """Get Members in Chat by Chat.chatname"""
     chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
-    members = Member.query.filter(Member.chat_id == chat.chat_id)
+    members = Member.query.filter(Member.chat_id == chat.chat_id).all()
 
     user_ids = [member.user_id for member in members]
     # Current User in this Chat
     if not current_user.user_id in user_ids:
         abort(403)
 
-    return jsonify({"members": make_public_member(model_as_dict(members))}), 200
+    members = [model_as_dict(member) for member in members]
+    return jsonify({"members": list(map(make_public_member, members))}), 200
 
 
 # Send json with username and chatname
@@ -359,41 +360,71 @@ def make_public_uri_chat(chat):
     for field in chat:
         if field == "chat_id":
             new_chat["uri"] = url_for(
-                "get_chat", chatname=chat["chatname"], _external=True
+                "get_my_chat", chatname=chat["chatname"], _external=True
             )
         else:
             new_chat[field] = chat[field]
     return new_chat
 
 
-@app.route("/api/get_chats/", methods=["GET"])
+@app.route("/api/get_all_chats/", methods=["GET"])
 @login_required
-def get_chats():
-    """Get Chats"""
-    chats = Chat.query.filter(
-        or_(Chat.is_public, Chat.chat_id == any_(current_user.memberships).chat_id)
-    )  # any_(Chat.members).user_id == current_user.user_id
-    chats = [model_as_dict(chat) for chat in chats]
+def get_all_chats():
+    """Get all available for current User Chats"""
+    chats = db.session.execute(
+        'SELECT * FROM chats\
+         WHERE chats.is_public OR chats.chat_id = ANY (\
+             SELECT members.chat_id FROM members\
+             WHERE members.user_id = :param)',
+        {"param": current_user.user_id}
+    )
+
+    chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
     return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
 
 
-@app.route("/api/get_chat/<string:chatname>/", methods=["GET"])
+@app.route("/api/get_my_chats/", methods=["GET"])
 @login_required
-def get_chat(chatname):
-    """Get Chat"""
-    chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
+def get_my_chats():
+    """Get Chats in which current User participates"""
+    chats = db.session.execute(
+        'SELECT * FROM chats\
+         WHERE chats.chat_id = ANY (\
+             SELECT members.chat_id FROM members\
+             WHERE members.user_id = :param)',
+        {"param": current_user.user_id}
+    )
 
-    if not chat.chat_id == any_(current_user.memberships).chat_id:
+    chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
+    return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
+
+
+@app.route("/api/get_my_chat/<string:chatname>/", methods=["GET"])
+@login_required
+def get_my_chat(chatname):
+    """Get Chat"""
+    chats = db.session.execute(
+        'SELECT * FROM chats\
+         WHERE chats.chatname = :param1 AND\
+             chats.chat_id = ANY (\
+             SELECT members.chat_id FROM members\
+             WHERE members.user_id = :param2)',
+        {"param1": chatname, "param2": current_user.user_id}
+    )
+
+    chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
+
+    if chats == []:
         abort(400)
 
-    return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 200
+    return jsonify({"chat": make_public_uri_chat(chats[0])}), 200
 
 
 @app.route("/api/create_chat/", methods=["POST"])
 @login_required
 def create_chat():
     """Create Chat"""
-    if not request.json:  # title not null СДЕЛАТЬ МИГРАЦИЮ !!!!!!!
+    if not request.json:
         abort(400)
 
     form = ChatForm.from_json(request.json)
@@ -402,13 +433,13 @@ def create_chat():
         print(form.errors)
         abort(400)
 
-    chat = Chat()
+    chat = Chat(current_user.user_id)
     form.populate_obj(chat)
 
     db.session.add(chat)
-    db.session.flush()  ###
+    db.session.flush()
 
-    db.session.refresh(chat)  ###
+    db.session.refresh(chat)
     member = Member(current_user.user_id, chat.chat_id)
 
     db.session.add(member)
@@ -424,13 +455,27 @@ def update_chat(chatname):
     if not request.json:
         abort(400)
 
-    chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
 
-    # curl -i -H "Content-Type: application/json" -X PUT -d '{"chat_title": "topic"}' http://std-messenger.com/api/update_chat/chat3/ --cookie "session=.eJwdzj0OgzAMQOG7eGZI_JM4XAbZ2BFdoUxV717U7S2f9D6wzTOvA9b3eecC2ytghdIJtYcEqqNOCs2Row-p4m7Gc0ZUNNRau7kUCtlN3Sa7s0lao_4UZ0xtgjsS18e3uQ_1tCHqxZStjFKrumsrLbl552AiabDAfeX5n6HvD2FaLtA.XJ-p1Q.Wd4T-Q-swYJrZ-fSbhckMs7xAIQ"
-    if (
-        not chat.chat_id == any_(current_user.memberships).chat_id
-    ):  # This line doesn't work
+    # curl -i -H "Content-Type: application/json" -X PUT -d '{"chat_title": "topic"}' 
+    # http://std-messenger.com/api/update_chat/chat3/ --cookie "session=..."
+
+    chat_ids = db.session.execute(
+        'SELECT chats.chat_id FROM chats\
+         WHERE chats.chatname = :param1 AND\
+             chats.chat_id = ANY (\
+             SELECT members.chat_id FROM members\
+             WHERE members.user_id = :param2)',
+        {"param1": chatname, "param2": current_user.user_id}
+    )
+
+    chat_ids = [{column: value for column, value in rowproxy.items()} for rowproxy in chat_ids]
+    print(chat_ids) #TODO:вернуть not null в поле chatname в БД############################################################################################
+
+    if chat_ids == []:
         abort(400)
+
+    chat = Chat.query.filter(Chat.chat_id == chat_ids[0]["chat_id"]).first_or_404()
+    print(chat)
 
     form = ChatForm.from_json(request.json)
 

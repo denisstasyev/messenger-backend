@@ -2,7 +2,7 @@ from wtforms_alchemy import ModelForm, Form
 from wtforms import StringField, PasswordField, BooleanField
 from wtforms.validators import DataRequired, EqualTo
 
-from .models import User, Member, Chat, Message, Attachment
+from .models import User, Chat, Message, Attachment
 
 
 # API general forms
