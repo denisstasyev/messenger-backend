@@ -34,25 +34,28 @@ from .forms import (
 
 
 wtforms_json.init()
-default_chatname_pattern = re.compile("chat\d+")  # pylint: disable=anomalous-backslash-in-string
+default_chatname_pattern = re.compile(r"chat\d+")
+
+
+def clean_correct_html(correct_html):
+    correct_html_pattern = re.compile(r"(\<(/?[^>]+)>)")
+    clean_text = re.sub(correct_html_pattern, '', correct_html)
+    return clean_text
 
 
 @app.errorhandler(400)
 def bad_request(error):
-    # pylint: disable=unused-argument
-    return make_response(jsonify({"error": "Bad request"}), 400)
+    return make_response(jsonify({"error": "Bad request", "description": clean_correct_html(error.get_description(request.environ))}), 400)
 
 
 @app.errorhandler(403)
 def forbidden(error):
-    # pylint: disable=unused-argument
-    return make_response(jsonify({"error": "Forbidden"}), 403)
+    return make_response(jsonify({"error": "Forbidden", "description": clean_correct_html(error.get_description(request.environ))}), 403)
 
 
 @app.errorhandler(404)
 def not_found(error):
-    # pylint: disable=unused-argument
-    return make_response(jsonify({"error": "Not found"}), 404)
+    return make_response(jsonify({"error": "Not found", "description": clean_correct_html(error.get_description(request.environ))}), 404)
 
 
 # Authorization API
@@ -381,10 +384,10 @@ def make_public_uri_chat(chat):
 def get_all_chats():
     """Get all available for current User Chats"""
     chats = db.session.execute(
-        'SELECT * FROM chats\
-         WHERE chats.is_public OR chats.chat_id = ANY (\
-             SELECT members.chat_id FROM members\
-             WHERE members.user_id = :param)',
+        """SELECT * FROM chats
+           WHERE chats.is_public OR chats.chat_id = ANY (
+               SELECT members.chat_id FROM members
+               WHERE members.user_id = :param)""",
         {"param": current_user.user_id}
     )
 
@@ -398,10 +401,10 @@ def get_all_chats():
 def get_my_chats():
     """Get Chats in which current User participates"""
     chats = db.session.execute(
-        'SELECT * FROM chats\
-         WHERE chats.chat_id = ANY (\
-             SELECT members.chat_id FROM members\
-             WHERE members.user_id = :param)',
+        """SELECT * FROM chats
+           WHERE chats.chat_id = ANY (
+               SELECT members.chat_id FROM members
+               WHERE members.user_id = :param)""",
         {"param": current_user.user_id}
     )
 
@@ -414,17 +417,17 @@ def get_my_chats():
 def get_my_chat(chatname):
     """Get Chat"""
     chats = db.session.execute(
-        'SELECT * FROM chats\
-         WHERE chats.chatname = :param1 AND\
-             chats.chat_id = ANY (\
-             SELECT members.chat_id FROM members\
-             WHERE members.user_id = :param2)',
+        """SELECT * FROM chats\
+           WHERE chats.chatname = :param1 AND
+               chats.chat_id = ANY (
+               SELECT members.chat_id FROM members
+               WHERE members.user_id = :param2)""",
         {"param1": chatname, "param2": current_user.user_id}
     )
 
     chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
 
-    if chats == []:
+    if not len(chats):
         abort(404)
 
     return jsonify({"chat": make_public_uri_chat(chats[0])}), 200
@@ -472,17 +475,17 @@ def update_chat(chatname):
 
     # Each Member can update Chat
     chat_ids = db.session.execute(
-        'SELECT chats.chat_id FROM chats\
-         WHERE chats.chatname = :param1 AND\
-             chats.chat_id = ANY (\
-             SELECT members.chat_id FROM members\
-             WHERE members.user_id = :param2)',
+        """SELECT chats.chat_id FROM chats
+           WHERE chats.chatname = :param1 AND
+               chats.chat_id = ANY (
+               SELECT members.chat_id FROM members
+               WHERE members.user_id = :param2)""",
         {"param1": chatname, "param2": current_user.user_id}
     )
 
     chat_ids = [{column: value for column, value in rowproxy.items()} for rowproxy in chat_ids]
 
-    if chat_ids == []:
+    if not len(chat_ids):
         abort(400)
 
     chat = Chat.query.filter(Chat.chat_id == chat_ids[0]["chat_id"]).first_or_404()
@@ -495,7 +498,7 @@ def update_chat(chatname):
 
     form.populate_obj(chat)
 
-    if default_chatname_pattern.match(chat.chatname) and (chat.chatname != "chat" + chat.chat_id):
+    if default_chatname_pattern.match(chat.chatname) and (chat.chatname != "chat" + chat.chat_id): #################Error!!!!!!!!!!!!!!
         abort(400)
 
     if chat.chatname is None:
@@ -659,7 +662,7 @@ def get_attachment(attachment_id):
             ),
         )
     ).first_or_404()
-    return (jsonify({"attachment": model_as_dict(attachment)}), 200)
+    return jsonify({"attachment": model_as_dict(attachment)}), 200
 
 
 @app.route("/api/create_attachment/", methods=["POST"])
@@ -684,7 +687,7 @@ def create_attachment():
     db.session.add(attachment)
     db.session.commit()
 
-    return (jsonify({"attachment": model_as_dict(attachment)}), 201)
+    return jsonify({"attachment": model_as_dict(attachment)}), 201
 
 
 @app.route("/api/update_attachment/<int:attachment_id>/", methods=["PUT"])
@@ -713,7 +716,7 @@ def update_attachment(attachment_id):
     ).update(model_as_dict(attachment))
     db.session.commit()
 
-    return (jsonify({"attachment": model_as_dict(attachment)}), 202)
+    return jsonify({"attachment": model_as_dict(attachment)}), 202
 
 
 @app.route("/api/attachments/<int:attachment_id>/", methods=["DELETE"])
