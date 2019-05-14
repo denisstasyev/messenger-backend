@@ -489,6 +489,7 @@ def update_chat(chatname):
         abort(400)
 
     chat = Chat.query.filter(Chat.chat_id == chat_ids[0]["chat_id"]).first_or_404()
+    chat_title = chat.chat_title
 
     form = ChatForm.from_json(request.json)
 
@@ -498,11 +499,14 @@ def update_chat(chatname):
 
     form.populate_obj(chat)
 
-    if default_chatname_pattern.match(chat.chatname) and (chat.chatname != "chat" + chat.chat_id): #################Error!!!!!!!!!!!!!!
-        abort(400)
-
     if chat.chatname is None:
         chat.chatname = chatname
+
+    if chat.chat_title is None:
+        chat.chat_title = chat_title
+
+    if default_chatname_pattern.match(chat.chatname) and (chat.chatname != "chat" + chat.chat_id):
+        abort(400)
 
     db.session.query(Chat).filter(Chat.chat_id == chat.chat_id).update(
         model_as_dict(chat)
