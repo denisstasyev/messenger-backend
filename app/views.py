@@ -1,12 +1,5 @@
 import re
-from flask import (
-    jsonify,
-    request,
-    abort,
-    make_response,
-    url_for,
-    render_template,
-)
+from flask import jsonify, request, abort, make_response, url_for, render_template
 import wtforms_json
 from flask_login import current_user, login_user, logout_user, login_required
 from sqlalchemy import or_, any_, and_
@@ -14,14 +7,7 @@ from sqlalchemy import or_, any_, and_
 from app import app, db, cache
 
 from .tasks import send_email
-from .models import (
-    User,
-    Member,
-    Chat,
-    Message,
-    Attachment,
-    model_as_dict,
-)
+from .models import User, Member, Chat, Message, Attachment, model_as_dict
 from .forms import (
     UserForm,
     MemberForm,
@@ -39,23 +25,53 @@ default_chatname_pattern = re.compile(r"chat\d+")
 
 def clean_correct_html(correct_html):
     correct_html_pattern = re.compile(r"(\<(/?[^>]+)>)")
-    clean_text = re.sub(correct_html_pattern, '', correct_html)
+    clean_text = re.sub(correct_html_pattern, "", correct_html)
     return clean_text
 
 
 @app.errorhandler(400)
 def bad_request(error):
-    return make_response(jsonify({"error": "Bad request", "description": clean_correct_html(error.get_description(request.environ))}), 400)
+    return make_response(
+        jsonify(
+            {
+                "error": "Bad request",
+                "description": clean_correct_html(
+                    error.get_description(request.environ)
+                ),
+            }
+        ),
+        400,
+    )
 
 
 @app.errorhandler(403)
 def forbidden(error):
-    return make_response(jsonify({"error": "Forbidden", "description": clean_correct_html(error.get_description(request.environ))}), 403)
+    return make_response(
+        jsonify(
+            {
+                "error": "Forbidden",
+                "description": clean_correct_html(
+                    error.get_description(request.environ)
+                ),
+            }
+        ),
+        403,
+    )
 
 
 @app.errorhandler(404)
 def not_found(error):
-    return make_response(jsonify({"error": "Not found", "description": clean_correct_html(error.get_description(request.environ))}), 404)
+    return make_response(
+        jsonify(
+            {
+                "error": "Not found",
+                "description": clean_correct_html(
+                    error.get_description(request.environ)
+                ),
+            }
+        ),
+        404,
+    )
 
 
 # Authorization API
@@ -152,7 +168,7 @@ def make_public_uri_user(user):
 
 
 # curl -X GET http://std-messenger.com/api/users/ --cookie "remember_token=...; session=..."
-#TODO: limit query to 10 replies
+# TODO: limit query to 10 replies
 @app.route("/api/get_users/", methods=["GET"])
 @login_required
 def get_users():
@@ -178,9 +194,9 @@ def get_user(username):
 # curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "denis",
 #  "first_name": "Denis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/ddenis/
 #  --cookie "remember_token=...; session=..."
-@app.route("/api/update_current_user/", methods=["PUT"])
+@app.route("/api/update_user/", methods=["PUT"])
 @login_required
-def update_current_user():
+def update_user():
     """Update current User"""
     if not request.json:
         abort(400)
@@ -197,7 +213,20 @@ def update_current_user():
 
     user = User.query.filter(User.username == username).first_or_404()
 
+    password = user.password
+    birth_date = user.birth_date
+    email = user.email
+
     form.populate_obj(user)
+
+    if user.password is None:
+        user.password = password
+
+    if user.birth_date is None:
+        user.birth_date = birth_date
+
+    if user.email is None:
+        user.email = email
 
     db.session.query(User).filter(User.user_id == user.user_id).update(
         model_as_dict(user)
@@ -214,9 +243,9 @@ def update_current_user():
 
 # curl -X DELETE  http://std-messenger.com/api/users/denis/
 #  --cookie "remember_token=...; session=..."
-@app.route("/api/delete_current_user/", methods=["DELETE"])
+@app.route("/api/delete_user/", methods=["DELETE"])
 @login_required
-def delete_current_user():
+def delete_user():
     """Delete current User and all his data"""
     username = current_user.username
 
@@ -231,14 +260,14 @@ def delete_current_user():
     db.session.query(Message).filter(Message.user_id == user.user_id).delete()
 
     db.session.execute(
-        'DELETE FROM members USING chats\
-         WHERE chats.chat_id = members.chat_id AND chats.creator_id = :param',
-        {"param": user.user_id}
+        """DELETE FROM members USING chats
+           WHERE chats.chat_id = members.chat_id AND chats.creator_id = :param""",
+        {"param": user.user_id},
     )
     db.session.execute(
-        'DELETE FROM messages USING chats\
-         WHERE chats.chat_id = messages.chat_id AND chats.creator_id = :param',
-        {"param": user.user_id}
+        """DELETE FROM messages USING chats
+           WHERE chats.chat_id = messages.chat_id AND chats.creator_id = :param""",
+        {"param": user.user_id},
     )
     db.session.query(Chat).filter(Chat.creator_id == user.user_id).delete()
 
@@ -276,7 +305,7 @@ def make_public_member(member):
     return new_member
 
 
-#TODO: limit query to 10 replies
+# TODO: limit query to 10 replies
 @app.route("/api/get_members/<string:chatname>/", methods=["GET"])
 @login_required
 def get_members(chatname):
@@ -346,7 +375,9 @@ def delete_member():
     user = User.query.filter(User.username == form.username.data).first_or_404()
     chat = Chat.query.filter(Chat.chatname == form.chatname.data).first_or_404()
 
-    member = Member.query.filter(and_(Member.user_id == user.user_id, Member.chat_id == chat.chat_id)).first_or_404()
+    member = Member.query.filter(
+        and_(Member.user_id == user.user_id, Member.chat_id == chat.chat_id)
+    ).first_or_404()
 
     # only User themselves and Chat.creator_id can remove User from Chat
     # if Chat.creator_id leaves Chat then this Chat is deleted
@@ -378,7 +409,7 @@ def make_public_uri_chat(chat):
     return new_chat
 
 
-#TODO: limit query to 10 replies
+# TODO: limit query to 10 replies
 @app.route("/api/get_all_chats/", methods=["GET"])
 @login_required
 def get_all_chats():
@@ -388,14 +419,16 @@ def get_all_chats():
            WHERE chats.is_public OR chats.chat_id = ANY (
                SELECT members.chat_id FROM members
                WHERE members.user_id = :param)""",
-        {"param": current_user.user_id}
+        {"param": current_user.user_id},
     )
 
-    chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
+    chats = [
+        {column: value for column, value in rowproxy.items()} for rowproxy in chats
+    ]
     return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
 
 
-#TODO: limit query to 10 replies
+# TODO: limit query to 10 replies
 @app.route("/api/get_my_chats/", methods=["GET"])
 @login_required
 def get_my_chats():
@@ -405,10 +438,12 @@ def get_my_chats():
            WHERE chats.chat_id = ANY (
                SELECT members.chat_id FROM members
                WHERE members.user_id = :param)""",
-        {"param": current_user.user_id}
+        {"param": current_user.user_id},
     )
 
-    chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
+    chats = [
+        {column: value for column, value in rowproxy.items()} for rowproxy in chats
+    ]
     return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
 
 
@@ -422,12 +457,14 @@ def get_my_chat(chatname):
                chats.chat_id = ANY (
                SELECT members.chat_id FROM members
                WHERE members.user_id = :param2)""",
-        {"param1": chatname, "param2": current_user.user_id}
+        {"param1": chatname, "param2": current_user.user_id},
     )
 
-    chats = [{column: value for column, value in rowproxy.items()} for rowproxy in chats]
+    chats = [
+        {column: value for column, value in rowproxy.items()} for rowproxy in chats
+    ]
 
-    if not len(chats):
+    if not chats:
         abort(404)
 
     return jsonify({"chat": make_public_uri_chat(chats[0])}), 200
@@ -480,12 +517,14 @@ def update_chat(chatname):
                chats.chat_id = ANY (
                SELECT members.chat_id FROM members
                WHERE members.user_id = :param2)""",
-        {"param1": chatname, "param2": current_user.user_id}
+        {"param1": chatname, "param2": current_user.user_id},
     )
 
-    chat_ids = [{column: value for column, value in rowproxy.items()} for rowproxy in chat_ids]
+    chat_ids = [
+        {column: value for column, value in rowproxy.items()} for rowproxy in chat_ids
+    ]
 
-    if not len(chat_ids):
+    if not chat_ids:
         abort(400)
 
     chat = Chat.query.filter(Chat.chat_id == chat_ids[0]["chat_id"]).first_or_404()
@@ -505,7 +544,9 @@ def update_chat(chatname):
     if chat.chat_title is None:
         chat.chat_title = chat_title
 
-    if default_chatname_pattern.match(chat.chatname) and (chat.chatname != "chat" + chat.chat_id):
+    if default_chatname_pattern.match(chat.chatname) and (
+        chat.chatname != "chat" + chat.chat_id
+    ):
         abort(400)
 
     db.session.query(Chat).filter(Chat.chat_id == chat.chat_id).update(
@@ -544,7 +585,7 @@ def delete_chat(chatname):
 # TODO: API for Message
 
 
-#TODO: limit query to 10 replies
+# TODO: limit query to 10 replies
 @app.route("/api/get_messages/<string:chatname>/", methods=["GET"])
 @login_required
 def get_messages(chatname):
@@ -557,19 +598,19 @@ def get_messages(chatname):
                chats.chat_id = ANY (
                SELECT members.chat_id FROM members
                WHERE members.user_id = :param2)""",
-        {"param1": chatname, "param2": current_user.user_id}
+        {"param1": chatname, "param2": current_user.user_id},
     )
 
-    chat_ids = [{column: value for column, value in rowproxy.items()} for rowproxy in chat_ids]
+    chat_ids = [
+        {column: value for column, value in rowproxy.items()} for rowproxy in chat_ids
+    ]
 
-    if not len(chat_ids):
+    if not chat_ids:
         abort(400)
 
     chat = Chat.query.filter(Chat.chat_id == chat_ids[0]["chat_id"]).first_or_404()
-    
-    messages = Message.query.filter(
-        Message.chat_id == chat_ids[0]["chat_id"]
-    ).all()
+
+    messages = Message.query.filter(Message.chat_id == chat_ids[0]["chat_id"]).all()
     return jsonify({"messages": list(map(model_as_dict, messages))}), 200
 
 
@@ -589,7 +630,9 @@ def create_message(chatname):
     message = Message()
     form.populate_obj(message)
 
-    message.chat_id = Chat.query.filter(Chat.chatname == chatname).first_or_404().chat_id
+    message.chat_id = (
+        Chat.query.filter(Chat.chatname == chatname).first_or_404().chat_id
+    )
     message.user_id = current_user.user_id
 
     db.session.add(message)
@@ -614,15 +657,6 @@ def delete_message(message_id):
 
 
 # API for Attachment
-
-
-@app.route("/api/get_attachments/", methods=["GET"])
-@login_required
-def get_attachments():
-    """Get all Attachments created by current_user"""
-    attachments = Attachment.query.filter(Attachment.user_id == current_user.user_id)
-    attachments = [model_as_dict(attachment) for attachment in attachments]
-    return jsonify({"attachments": list(attachments)}), 200
 
 
 @app.route("/api/get_attachment/<int:attachment_id>/", methods=["GET"])

@@ -118,6 +118,7 @@ class Chat(db.Model):
         self.is_public = is_public
 
     def __repr__(self):
+        # pylint: disable=line-too-long
         return "<{}: chat_id={}, chatname={}, is_public={}, created_at={}, updated_at={}, creator_id={}>".format(
             self.__class__.__name__,
             self.chat_id,
