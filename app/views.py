@@ -545,28 +545,37 @@ def delete_chat(chatname):
 
 
 #TODO: limit query to 10 replies
-@app.route("/api/get_messages/", methods=["GET"])
+@app.route("/api/get_messages/<string:chatname>/", methods=["GET"])
 @login_required
-def get_messages():
-    """Get all Messages created by current_user"""
-    messages = Message.query.filter(Message.user_id == current_user.user_id)
-    messages = [model_as_dict(message) for message in messages]
-    return jsonify({"messages": list(messages)}), 200
+def get_messages(chatname):
+    """Get Messages of the Chat by chatname"""
+
+    # Each Member can get Chat
+    chat_ids = db.session.execute(
+        """SELECT chats.chat_id FROM chats
+           WHERE chats.chatname = :param1 AND
+               chats.chat_id = ANY (
+               SELECT members.chat_id FROM members
+               WHERE members.user_id = :param2)""",
+        {"param1": chatname, "param2": current_user.user_id}
+    )
+
+    chat_ids = [{column: value for column, value in rowproxy.items()} for rowproxy in chat_ids]
+
+    if not len(chat_ids):
+        abort(400)
+
+    chat = Chat.query.filter(Chat.chat_id == chat_ids[0]["chat_id"]).first_or_404()
+    
+    messages = Message.query.filter(
+        Message.chat_id == chat_ids[0]["chat_id"]
+    ).all()
+    return jsonify({"messages": list(map(model_as_dict, messages))}), 200
 
 
-@app.route("/api/get_message/<int:message_id>/", methods=["GET"])
+@app.route("/api/create_message/<string:chatname>/", methods=["POST"])
 @login_required
-def get_message(message_id):
-    """Get Message created by current_user"""
-    message = Message.query.filter(
-        and_(Message.message_id == message_id, Message.user_id == current_user.user_id)
-    ).first_or_404()
-    return jsonify({"message": model_as_dict(message)}), 200
-
-
-@app.route("/api/create_message/", methods=["POST"])
-@login_required
-def create_message():
+def create_message(chatname):
     """Create Message"""
     if not request.json:
         abort(400)
@@ -580,17 +589,8 @@ def create_message():
     message = Message()
     form.populate_obj(message)
 
-    if (
-        message.user_id != current_user.user_id
-        or Member.query.filter(
-            and_(
-                Member.chat_id == message.chat_id,
-                Member.user_id == current_user.user_id,
-            )
-        ).first()
-        is None
-    ):
-        abort(400)
+    message.chat_id = Chat.query.filter(Chat.chatname == chatname).first_or_404().chat_id
+    message.user_id = current_user.user_id
 
     db.session.add(message)
     db.session.commit()
@@ -598,36 +598,11 @@ def create_message():
     return jsonify({"message": model_as_dict(message)}), 201
 
 
-@app.route("/api/update_message/<int:message_id>/", methods=["PUT"])
-@login_required
-def update_message(message_id):
-    """Update Message"""
-    if not request.json:
-        abort(400)
-
-    message = Message.query.filter(
-        and_(Message.message_id == message_id, Message.user_id == current_user.user_id)
-    ).first_or_404()
-    form = MessageForm.from_json(request.json)
-
-    if not form.validate():
-        print(form.errors)
-        abort(400)
-
-    form.populate_obj(message)
-
-    db.session.query(Message).filter(Message.message_id == message.message_id).update(
-        model_as_dict(message)
-    )
-    db.session.commit()
-
-    return jsonify({"message": model_as_dict(message)}), 202
-
-
 @app.route("/api/delete_message/<int:message_id>/", methods=["DELETE"])
 @login_required
 def delete_message(message_id):
     """Delete Message"""
+    # Only User by himself can delete his Message
     message = Message.query.filter(
         and_(Message.message_id == message_id, Message.user_id == current_user.user_id)
     ).first_or_404()

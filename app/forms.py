@@ -26,7 +26,6 @@ class ChatForm(ModelForm):
 class MessageForm(ModelForm):
     class Meta:
         model = Message
-        include = ["chat_id", "user_id"]
 
 
 class AttachmentForm(ModelForm):
