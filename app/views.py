@@ -44,6 +44,21 @@ def bad_request(error):
     )
 
 
+@app.errorhandler(401)
+def unauthorized(error):
+    return make_response(
+        jsonify(
+            {
+                "error": "Unauthorized",
+                "description": clean_correct_html(
+                    error.get_description(request.environ)
+                ),
+            }
+        ),
+        400,
+    )
+
+
 @app.errorhandler(403)
 def forbidden(error):
     return make_response(
@@ -183,13 +198,13 @@ def update_user():
     if not request.json:
         abort(400)
 
-    username = current_user.username
-
     form = UserForm.from_json(request.json)
 
     if not form.validate():
         print(form.errors)
         abort(400)
+
+    username = current_user.username
 
     logout()
 
@@ -203,10 +218,8 @@ def update_user():
 
     if user.password is None:
         user.password = password
-
     if user.birth_date is None:
         user.birth_date = birth_date
-
     if user.email is None:
         user.email = email
 
@@ -228,37 +241,11 @@ def delete_user():
 
     user = User.query.filter(User.username == username).first_or_404()
 
-    db.session.query(Attachment).filter(Attachment.user_id == user.user_id).delete()
-    db.session.query(Member).filter(
-        Member.user_id == user.user_id
-    ).delete()  # TODO: как удалять файл из облака?
-    db.session.query(Message).filter(Message.user_id == user.user_id).delete()
-
-    db.session.execute(
-        """DELETE FROM members USING chats
-           WHERE chats.chat_id = members.chat_id AND chats.creator_id = :param""",
-        {"param": user.user_id},
-    )
-    db.session.execute(
-        """DELETE FROM messages USING chats
-           WHERE chats.chat_id = messages.chat_id AND chats.creator_id = :param""",
-        {"param": user.user_id},
-    )
-    db.session.query(Chat).filter(Chat.creator_id == user.user_id).delete()
-
-    db.session.query(Chat).filter(Chat.members is not None).delete()
-
-    db.session.query(Attachment).filter(
-        and_(
-            Attachment.user_id.is_(None),
-            and_(Attachment.chat_id.is_(None), Attachment.message_id.is_(None)),
-        )
-    ).delete()  # TODO: как удалять файл из облака?
-
+    # TODO: how to delete file from remote cloud before delete Attachment?
     db.session.delete(user)
     db.session.commit()
 
-    cache.delete("my_chats_by_" + current_user.username)
+    cache.delete("my_chats_by_" + username)
 
     return jsonify({"result": True}), 200
 

@@ -27,16 +27,16 @@ class User(UserMixin, db.Model):
     email = db.Column(EmailType, unique=True)
 
     messages = db.relationship(
-        "Message", backref="user_owner", lazy="dynamic", foreign_keys="Message.user_id"
+        "Message", lazy="select", cascade="delete", foreign_keys="Message.user_id"
     )
     attachments = db.relationship(
-        "Attachment",
-        backref="user_owner",
-        lazy="dynamic",
-        foreign_keys="Attachment.user_id",
+        "Attachment", lazy="select", cascade="delete", foreign_keys="Attachment.user_id"
     )
     memberships = db.relationship(
-        "Member", backref="user_owner", lazy="dynamic", foreign_keys="Member.user_id"
+        "Member", lazy="select", cascade="delete", foreign_keys="Member.user_id"
+    )
+    chats = db.relationship(
+        "Chat", lazy="select", cascade="delete", foreign_keys="Chat.creator_id"
     )
 
     def __init__(self, username=None, first_name=None, last_name=None, email=None):
