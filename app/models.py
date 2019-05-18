@@ -30,14 +30,12 @@ class User(UserMixin, db.Model):
         "Message", lazy="select", cascade="delete", foreign_keys="Message.user_id"
     )
     attachments = db.relationship(
-        "Attachment", lazy="select", cascade="delete", foreign_keys="Attachment.user_id"
+        "Attachment", lazy="select", foreign_keys="Attachment.user_id"
     )
     memberships = db.relationship(
         "Member", lazy="select", cascade="delete", foreign_keys="Member.user_id"
     )
-    chats = db.relationship(
-        "Chat", lazy="select", cascade="delete", foreign_keys="Chat.creator_id"
-    )
+    chats = db.relationship("Chat", lazy="select", foreign_keys="Chat.creator_id")
 
     def __init__(self, username=None, first_name=None, last_name=None, email=None):
         self.username = username
@@ -100,16 +98,13 @@ class Chat(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
 
     messages = db.relationship(
-        "Message", backref="chat_owner", lazy="dynamic", foreign_keys="Message.chat_id"
+        "Message", lazy="select", cascade="delete", foreign_keys="Message.chat_id"
     )
     members = db.relationship(
-        "Member", backref="chat_owner", lazy="dynamic", foreign_keys="Member.chat_id"
+        "Member", lazy="select", cascade="delete", foreign_keys="Member.chat_id"
     )
     attachments = db.relationship(
-        "Attachment",
-        backref="chat_owner",
-        lazy="dynamic",
-        foreign_keys="Attachment.chat_id",
+        "Attachment", lazy="select", foreign_keys="Attachment.chat_id"
     )
 
     def __init__(self, creator_id=None, chatname=None, is_public=None):

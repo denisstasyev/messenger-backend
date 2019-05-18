@@ -241,7 +241,8 @@ def delete_user():
 
     user = User.query.filter(User.username == username).first_or_404()
 
-    # TODO: how to delete file from remote cloud before delete Attachment?
+    # TODO: delete_attachments(username)
+
     db.session.delete(user)
     db.session.commit()
 
@@ -270,14 +271,13 @@ def make_public_member(member):
 def get_members(chatname):
     """Get Members in Chat by Chat.chatname"""
     chat = Chat.query.filter(Chat.chatname == chatname).first_or_404()
-    members = Member.query.filter(Member.chat_id == chat.chat_id).all()
 
-    user_ids = [member.user_id for member in members]
+    user_ids = [member.user_id for member in chat.members]
     # current User in this Chat
     if not current_user.user_id in user_ids:
         abort(403)
 
-    members = [model_as_dict(member) for member in members]
+    members = [model_as_dict(member) for member in chat.members]
     return jsonify({"members": list(map(make_public_member, members))}), 200
 
 
@@ -299,9 +299,6 @@ def create_member():
     chat = Chat.query.filter(Chat.chatname == form.chatname.data).first_or_404()
 
     member = Member(user.user_id, chat.chat_id)
-    form.populate_obj(member)
-
-    chat = Chat.query.filter(Chat.chat_id == member.chat_id).first_or_404()
 
     if chat.is_public:
         # only User themselves can join public Chat
@@ -322,6 +319,7 @@ def create_member():
 @login_required
 def delete_member():
     """Delete Member (Leave Chat)"""
+    # send json with username and chatname
     if not request.json:
         abort(400)
 
@@ -338,14 +336,16 @@ def delete_member():
         and_(Member.user_id == user.user_id, Member.chat_id == chat.chat_id)
     ).first_or_404()
 
-    # only User themselves and Chat.creator_id can remove User from Chat
+    # only Users themselves and Chat.creator_id can delete User from Chat
     # if Chat.creator_id leaves Chat then this Chat is deleted
     if not (current_user.user_id in [member.user_id, chat.creator_id]):
         abort(400)
 
     db.session.delete(member)
-    if chat.creator_id == member.user_id:
-        delete_chat(chat.chatname)
+
+    # Chat without Users is also deleted
+    if (chat.creator_id == member.user_id) or chat.members is None:
+        db.session.delete(chat)
 
     db.session.commit()
 
