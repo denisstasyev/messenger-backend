@@ -85,7 +85,7 @@ def login():
     if current_user.is_authenticated:
         return jsonify({"result": True}), 200
 
-    form = LoginForm.from_  # , load_userjson(request.json)  ??????
+    form = LoginForm.from_json(request.json)
 
     if not form.validate():
         print(form.errors)
@@ -141,11 +141,6 @@ def register():
             )
         )
 
-    users = User.query.all()
-    users = [model_as_dict(user) for user in users]
-    rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-    cache.set("users", rv, timeout=5 * 60)
-
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 201
 
 
@@ -154,35 +149,25 @@ def register():
 
 def make_public_uri_user(user):
     """Create URI for User"""
-    new_user = {}
-    for field in user:
-        if field == "user_id":
-            new_user["uri"] = url_for(
-                "get_user", username=user["username"], _external=True
-            )
-        elif field == "password":
-            pass
-        else:
-            new_user[field] = user[field]
+    new_user = user.copy()
+    new_user.pop("user_id")
+    new_user.pop("password")
+    new_user["uri"] = url_for(
+        "get_user", username=user["username"], _external=True
+    )
     return new_user
 
 
-# curl -X GET http://std-messenger.com/api/users/ --cookie "remember_token=...; session=..."
 # TODO: limit query to 10 replies
 @app.route("/api/get_users/", methods=["GET"])
 @login_required
 def get_users():
     """Get Users"""
-    rv = cache.get("users")
-    if rv is None:
-        users = User.query.all()
-        users = [model_as_dict(user) for user in users]
-        rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-        cache.set("users", rv, timeout=5 * 60)
-    return rv
+    users = User.query.all()
+    users = [model_as_dict(user) for user in users]
+    return jsonify({"users": list(map(make_public_uri_user, users))}), 200
 
 
-# curl -X GET http://std-messenger.com/api/users/denis/ --cookie "remember_token=...; session=..."
 @app.route("/api/get_user/<string:username>/", methods=["GET"])
 @login_required
 def get_user(username):
@@ -191,9 +176,6 @@ def get_user(username):
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 200
 
 
-# curl -i -H "Content-Type: application/json" -X PUT -d '{"username": "denis",
-#  "first_name": "Denis", "last_name": "Stasyev"}' http://std-messenger.com/api/users/ddenis/
-#  --cookie "remember_token=...; session=..."
 @app.route("/api/update_user/", methods=["PUT"])
 @login_required
 def update_user():
@@ -233,16 +215,9 @@ def update_user():
     )
     db.session.commit()
 
-    users = User.query.all()
-    users = [model_as_dict(user) for user in users]
-    rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-    cache.set("users", rv, timeout=5 * 60)
-
     return jsonify({"user": make_public_uri_user(model_as_dict(user))}), 202
 
 
-# curl -X DELETE  http://std-messenger.com/api/users/denis/
-#  --cookie "remember_token=...; session=..."
 @app.route("/api/delete_user/", methods=["DELETE"])
 @login_required
 def delete_user():
@@ -283,10 +258,7 @@ def delete_user():
     db.session.delete(user)
     db.session.commit()
 
-    users = User.query.all()
-    users = [model_as_dict(user) for user in users]
-    rv = jsonify({"users": list(map(make_public_uri_user, users))}), 200
-    cache.set("users", rv, timeout=5 * 60)
+    cache.delete("my_chats_by_" + current_user.username)
 
     return jsonify({"result": True}), 200
 
@@ -314,7 +286,7 @@ def get_members(chatname):
     members = Member.query.filter(Member.chat_id == chat.chat_id).all()
 
     user_ids = [member.user_id for member in members]
-    # Current User in this Chat
+    # current User in this Chat
     if not current_user.user_id in user_ids:
         abort(403)
 
@@ -322,11 +294,11 @@ def get_members(chatname):
     return jsonify({"members": list(map(make_public_member, members))}), 200
 
 
-# Send json with username and chatname
 @app.route("/api/create_member/", methods=["POST"])
 @login_required
 def create_member():
     """Create Member (Join Chat)"""
+    # send json with username and chatname
     if not request.json:
         abort(400)
 
@@ -398,14 +370,11 @@ def delete_member():
 
 def make_public_uri_chat(chat):
     """Create URI for Chat"""
-    new_chat = {}
-    for field in chat:
-        if field == "chat_id":
-            new_chat["uri"] = url_for(
-                "get_my_chat", chatname=chat["chatname"], _external=True
-            )
-        else:
-            new_chat[field] = chat[field]
+    new_chat = chat.copy()
+    new_chat.pop("chat_id")
+    new_chat["uri"] = url_for(
+        "get_my_chat", chatname=chat["chatname"], _external=True
+    )
     return new_chat
 
 
@@ -428,22 +397,38 @@ def get_all_chats():
     return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
 
 
-# TODO: limit query to 10 replies
-@app.route("/api/get_my_chats/", methods=["GET"])
-@login_required
-def get_my_chats():
-    """Get Chats in which current User participates"""
+def calculate_my_chats():
     chats = db.session.execute(
         """SELECT * FROM chats
-           WHERE chats.chat_id = ANY (
-               SELECT members.chat_id FROM members
-               WHERE members.user_id = :param)""",
+        WHERE chats.chat_id = ANY (
+            SELECT members.chat_id FROM members
+            WHERE members.user_id = :param)""",
         {"param": current_user.user_id},
     )
 
     chats = [
         {column: value for column, value in rowproxy.items()} for rowproxy in chats
     ]
+
+    return chats
+
+
+def cache_get_my_chats():
+    rv = cache.get("my_chats_by_" + current_user.username)
+    if rv is None:
+        rv = calculate_my_chats()
+
+        cache.set("my_chats_by_" + current_user.username, rv, timeout=5 * 60)
+
+    return rv
+
+
+# TODO: limit query to 10 replies
+@app.route("/api/get_my_chats/", methods=["GET"])
+@login_required
+def get_my_chats():
+    """Get Chats in which current User participates"""
+    chats = cache_get_my_chats()
     return jsonify({"chats": list(map(make_public_uri_chat, chats))}), 200
 
 
@@ -451,18 +436,9 @@ def get_my_chats():
 @login_required
 def get_my_chat(chatname):
     """Get Chat"""
-    chats = db.session.execute(
-        """SELECT * FROM chats\
-           WHERE chats.chatname = :param1 AND
-               chats.chat_id = ANY (
-               SELECT members.chat_id FROM members
-               WHERE members.user_id = :param2)""",
-        {"param1": chatname, "param2": current_user.user_id},
-    )
-
-    chats = [
-        {column: value for column, value in rowproxy.items()} for rowproxy in chats
-    ]
+    my_chats = cache_get_my_chats()
+    
+    chats = list(filter(lambda chat: chat["chatname"] == chatname, my_chats))
 
     if not chats:
         abort(404)
@@ -498,11 +474,16 @@ def create_chat():
     db.session.add(member)
     db.session.commit()
 
+    rv = cache.get("my_chats_by_" + current_user.username)
+    if rv is None:
+        cache.set("my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60)
+    else:
+        rv.append(model_as_dict(chat))
+        cache.set("my_chats_by_" + current_user.username, rv, timeout=5 * 60)
+
     return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 201
 
 
-# curl -i -H "Content-Type: application/json" -X PUT -d '{"chat_title": "topic"}'
-# http://std-messenger.com/api/update_chat/chat3/ --cookie "session=..."
 @app.route("/api/update_chat/<string:chatname>/", methods=["PUT"])
 @login_required
 def update_chat(chatname):
@@ -510,7 +491,7 @@ def update_chat(chatname):
     if not request.json:
         abort(400)
 
-    # Each Member can update Chat
+    # each Member can update Chat
     chat_ids = db.session.execute(
         """SELECT chats.chat_id FROM chats
            WHERE chats.chatname = :param1 AND
@@ -554,6 +535,13 @@ def update_chat(chatname):
     )
     db.session.commit()
 
+    rv = cache.get("my_chats_by_" + current_user.username)
+    if rv is None:
+        cache.set("my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60)
+    else:
+        rv = calculate_my_chats()
+        cache.set("my_chats_by_" + current_user.username, rv, timeout=5 * 60)
+
     return jsonify({"chat": make_public_uri_chat(model_as_dict(chat))}), 202
 
 
@@ -579,6 +567,9 @@ def delete_chat(chatname):
     db.session.delete(chat)
     db.session.commit()
 
+    rv = calculate_my_chats()
+    cache.set("my_chats_by_" + current_user.username, rv, timeout=5 * 60)
+
     return jsonify({"result": True}), 200
 
 
@@ -590,8 +581,7 @@ def delete_chat(chatname):
 @login_required
 def get_messages(chatname):
     """Get Messages of the Chat by chatname"""
-
-    # Each Member can get Chat
+    # each Member can get Chat
     chat_ids = db.session.execute(
         """SELECT chats.chat_id FROM chats
            WHERE chats.chatname = :param1 AND
@@ -645,7 +635,7 @@ def create_message(chatname):
 @login_required
 def delete_message(message_id):
     """Delete Message"""
-    # Only User by himself can delete his Message
+    # only User by himself can delete his Message
     message = Message.query.filter(
         and_(Message.message_id == message_id, Message.user_id == current_user.user_id)
     ).first_or_404()
@@ -657,6 +647,7 @@ def delete_message(message_id):
 
 
 # API for Attachment
+#TODO: add access rights
 
 
 @app.route("/api/get_attachment/<int:attachment_id>/", methods=["GET"])
@@ -664,16 +655,7 @@ def delete_message(message_id):
 def get_attachment(attachment_id):
     """Get Attachment"""
     attachment = Attachment.query.filter(
-        and_(
-            Attachment.attachment_id == attachment_id,
-            or_(
-                Attachment.user_id == current_user.user_id,
-                Attachment.chat_id
-                == any_(
-                    User.query.filter(User.user_id == current_user.user_id).memberships
-                ).chat_id,
-            ),
-        )
+        Attachment.attachment_id == attachment_id
     ).first_or_404()
     return jsonify({"attachment": model_as_dict(attachment)}), 200
 
@@ -703,36 +685,7 @@ def create_attachment():
     return jsonify({"attachment": model_as_dict(attachment)}), 201
 
 
-@app.route("/api/update_attachment/<int:attachment_id>/", methods=["PUT"])
-@login_required
-def update_attachment(attachment_id):
-    """Update Attachment"""
-    if not request.json:
-        abort(400)
-
-    attachment = Attachment.query.filter(
-        and_(
-            Attachment.attachment_id == attachment_id,
-            Attachment.user_id == current_user.user_id,
-        )
-    ).first_or_404()
-    form = AttachmentForm.from_json(request.json)
-
-    if not form.validate():
-        print(form.errors)
-        abort(400)
-
-    form.populate_obj(attachment)
-
-    db.session.query(Attachment).filter(
-        Attachment.attachment_id == attachment.attachment_id
-    ).update(model_as_dict(attachment))
-    db.session.commit()
-
-    return jsonify({"attachment": model_as_dict(attachment)}), 202
-
-
-@app.route("/api/attachments/<int:attachment_id>/", methods=["DELETE"])
+@app.route("/api/delete_attachment/<int:attachment_id>/", methods=["DELETE"])
 @login_required
 def delete_attachment(attachment_id):
     """Delete Attachment"""
@@ -752,8 +705,6 @@ def delete_attachment(attachment_id):
 
 # Some other API methods
 
-
-#################
 
 # @app.route("/search_users/", methods=["GET"])
 # def search_users(query=None, limit=None):
