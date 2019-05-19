@@ -16,6 +16,7 @@ def model_as_dict(model):
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
+
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), index=True, unique=True, nullable=False)
     password = db.Column(PasswordType(schemes=["pbkdf2_sha256"]))  # password hash
@@ -35,7 +36,9 @@ class User(UserMixin, db.Model):
     memberships = db.relationship(
         "Member", lazy="select", cascade="delete", foreign_keys="Member.user_id"
     )
-    chats = db.relationship("Chat", lazy="select", foreign_keys="Chat.creator_id")
+    chats = db.relationship(
+        "Chat", lazy="select", cascade="delete", foreign_keys="Chat.creator_id"
+    )
 
     def __init__(self, username=None, first_name=None, last_name=None, email=None):
         self.username = username
@@ -66,6 +69,7 @@ def load_user(user_id):
 
 class Member(db.Model):
     __tablename__ = "members"
+
     member_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
@@ -87,10 +91,9 @@ class Member(db.Model):
 
 class Chat(db.Model):
     __tablename__ = "chats"
+
     chat_id = db.Column(db.Integer, primary_key=True)
-    chatname = db.Column(
-        db.String(80), index=True, unique=True, default="chat" + chat_id
-    )
+    chatname = db.Column(db.String(80), index=True, unique=True)
     chat_title = db.Column(db.String(120), index=True)
     is_public = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -127,6 +130,7 @@ class Chat(db.Model):
 
 class Message(db.Model):
     __tablename__ = "messages"
+
     message_id = db.Column(db.Integer, primary_key=True)
     chat_id = db.Column(db.Integer, db.ForeignKey("chats.chat_id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
@@ -159,6 +163,7 @@ class Message(db.Model):
 
 class Attachment(db.Model):
     __tablename__ = "attachments"
+
     attachment_id = db.Column(db.Integer, primary_key=True)
     attachment_type = db.Column(db.String(80), nullable=False)
     attachment_url = db.Column(db.String(500), nullable=False)
