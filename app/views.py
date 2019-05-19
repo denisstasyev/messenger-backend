@@ -2,7 +2,7 @@ import re
 from flask import jsonify, request, abort, make_response, url_for, render_template
 import wtforms_json
 from flask_login import current_user, login_user, logout_user, login_required
-from sqlalchemy import or_, any_, and_
+from sqlalchemy import and_
 
 from app import app, db, cache
 
@@ -167,9 +167,7 @@ def make_public_uri_user(user):
     new_user = user.copy()
     new_user.pop("user_id")
     new_user.pop("password")
-    new_user["uri"] = url_for(
-        "get_user", username=user["username"], _external=True
-    )
+    new_user["uri"] = url_for("get_user", username=user["username"], _external=True)
     return new_user
 
 
@@ -295,9 +293,11 @@ def create_member():
     member = Member(user.user_id, chat.chat_id)
 
     # If it already exists
-    members = Member.query.filter(and_(Member.user_id == member.user_id, Member.chat_id == member.chat_id)).all()
-    if len(members):
-        abort(400) 
+    members = Member.query.filter(
+        and_(Member.user_id == member.user_id, Member.chat_id == member.chat_id)
+    ).all()
+    if members:
+        abort(400)
 
     if chat.is_public:
         # only User themselves can join public Chat
@@ -358,9 +358,7 @@ def make_public_uri_chat(chat):
     """Create URI for Chat"""
     new_chat = chat.copy()
     new_chat.pop("chat_id")
-    new_chat["uri"] = url_for(
-        "get_my_chat", chatname=chat["chatname"], _external=True
-    )
+    new_chat["uri"] = url_for("get_my_chat", chatname=chat["chatname"], _external=True)
     return new_chat
 
 
@@ -372,7 +370,9 @@ def get_all_chats():
     chats = cache_get_my_chats()
     chat_ids = [chat["chat_id"] for chat in chats]
 
-    public_chats = Chat.query.filter(and_(Chat.is_public, not (Chat.chat_id in chat_ids))).all()
+    public_chats = Chat.query.filter(
+        and_(Chat.is_public, not Chat.chat_id in chat_ids)
+    ).all()
     public_chats = [model_as_dict(chat) for chat in public_chats]
 
     for chat in public_chats:
@@ -414,7 +414,7 @@ def get_my_chats():
 def get_my_chat(chatname):
     """Get Chat"""
     my_chats = cache_get_my_chats()
-    
+
     match = None
     for chat in my_chats:
         if chat["chatname"] == chatname:
@@ -459,7 +459,9 @@ def create_chat():
 
     rv = cache.get("my_chats_by_" + current_user.username)
     if rv is None:
-        cache.set("my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60)
+        cache.set(
+            "my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60
+        )
     else:
         rv.append(model_as_dict(chat))
         cache.set("my_chats_by_" + current_user.username, rv, timeout=5 * 60)
@@ -507,8 +509,8 @@ def update_chat(chatname):
         chat.chat_title = chat_title
 
     if default_chatname_pattern.match(chat.chatname) and (
-        chat.chatname != "chat" + chat.chat_id
-    ):
+            chat.chatname != "chat" + chat.chat_id
+        ):
         abort(400)
 
     db.session.query(Chat).filter(Chat.chat_id == chat.chat_id).update(
@@ -518,7 +520,9 @@ def update_chat(chatname):
 
     rv = cache.get("my_chats_by_" + current_user.username)
     if rv is None:
-        cache.set("my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60)
+        cache.set(
+            "my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60
+        )
     else:
         rv = calculate_my_chats()
         cache.set("my_chats_by_" + current_user.username, rv, timeout=5 * 60)
@@ -546,7 +550,7 @@ def delete_chat(chatname):
     return jsonify({"result": True}), 200
 
 
-# TODO: API for Message
+# API for Message
 
 
 # TODO: limit query to 10 replies
@@ -627,7 +631,7 @@ def delete_message(message_id):
 
 
 # API for Attachment
-#TODO: add access rights
+# TODO: add access rights
 
 
 @app.route("/api/get_attachment/<int:attachment_id>/", methods=["GET"])
@@ -669,7 +673,7 @@ def create_attachment():
 @login_required
 def delete_attachment(attachment_id):
     """Delete Attachment"""
-    # TODO: как удалять файл из облака?
+    # TODO: delete attachment from remote cloud
     attachment = Attachment.query.filter(
         and_(
             Attachment.attachment_id == attachment_id,
