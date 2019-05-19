@@ -10,6 +10,7 @@ from .models import User
 
 @celery.task(name="send_email", time_limit=60)
 def send_email(subject, recipients, body, html):
+    """Send email"""
     msg = Message(
         subject,
         sender=("STD-messenger", app.config["ADMINS"][0]),
@@ -23,6 +24,7 @@ def send_email(subject, recipients, body, html):
 
 @celery.task(name="send_email_birthday")
 def send_email_birthday():
+    """Send birthday email"""
     now = datetime.utcnow()
     users = User.query.filter(
         and_(

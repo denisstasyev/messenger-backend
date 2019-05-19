@@ -1,6 +1,7 @@
 from wtforms_alchemy import ModelForm, Form
-from wtforms import StringField, PasswordField, BooleanField
-from wtforms.validators import DataRequired, EqualTo
+from wtforms_alchemy.validators import Unique
+from wtforms import TextField, PasswordField, BooleanField
+from wtforms.validators import Length, DataRequired, EqualTo
 
 from .models import User, Chat, Message, Attachment
 
@@ -11,11 +12,17 @@ from .models import User, Chat, Message, Attachment
 class UserForm(ModelForm):
     class Meta:
         model = User
+        only = ["birth_date", "email"]
+
+    username = TextField("username", validators=[Length(max=80), Unique(User.username)])
+    password = PasswordField("password")
+    first_name = TextField("first_name", validators=[Length(max=80)])
+    last_name = TextField("last_name", validators=[Length(max=80)])
 
 
 class MemberForm(Form):
-    username = StringField("username", validators=[DataRequired()])
-    chatname = StringField("chatname", validators=[DataRequired()])
+    username = TextField("username", validators=[DataRequired(), Length(max=80)])
+    chatname = TextField("chatname", validators=[DataRequired(), Length(max=80)])
 
 
 class ChatForm(ModelForm):
@@ -42,7 +49,7 @@ class LoginForm(ModelForm):
         model = User
         only = ["password"]
 
-    username = StringField("username", validators=[DataRequired()])
+    username = TextField("username", validators=[DataRequired(), Length(max=80)])
     remember_me = BooleanField("remember me", default=False)
 
 
