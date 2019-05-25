@@ -11,6 +11,9 @@ from werkzeug.contrib.cache import MemcachedCache
 # Profiler
 from werkzeug.contrib.profiler import ProfilerMiddleware
 
+import boto3
+import config
+
 from .flask_celery import make_celery
 
 app = Flask(__name__, instance_relative_config=True)
@@ -47,6 +50,15 @@ cache = MemcachedCache(["127.0.0.1:11211"])
 
 # Profiler
 app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
+
+# Mail.Ru Cloud Solutions
+boto3_session = boto3.session.Session()
+s3_client = boto3_session.client(
+    service_name="s3",
+    endpoint_url="http://hb.bizmrg.com",
+    aws_access_key_id=app.config["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=app.config["AWS_SECRET_ACCESS_KEY"],
+)
 
 from .views import *
 from .models import *

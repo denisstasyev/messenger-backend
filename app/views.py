@@ -1,10 +1,11 @@
 import re
+import base64
 from flask import jsonify, request, abort, make_response, url_for, render_template
 import wtforms_json
 from flask_login import current_user, login_user, logout_user, login_required
 from sqlalchemy import and_
 
-from app import app, db, cache
+from app import app, db, cache, s3_client
 
 from .tasks import send_email
 from .models import User, Member, Chat, Message, Attachment, model_as_dict
@@ -510,8 +511,8 @@ def update_chat(chatname):
         chat.chat_title = chat_title
 
     if DEFAULT_CHATNAME_PATTERN.match(chat.chatname) and (
-            chat.chatname != "chat" + chat.chat_id
-        ):
+        chat.chatname != "chat" + chat.chat_id
+    ):
         abort(400)
 
     db.session.query(Chat).filter(Chat.chat_id == chat.chat_id).update(
@@ -686,6 +687,27 @@ def delete_attachment(attachment_id):
     db.session.commit()
 
     return jsonify({"result": True}), 200
+
+
+# TODO: filename should be unique!
+def upload_file(base64content, filename):
+    if s3_client.put_object(
+        Bucket="2018-stasyev-denis-bucket",
+        Key=filename,
+        Body=base64.b64decode(base64content),
+    ):
+        return jsonify({"result": True}), 200
+    else:
+        return jsonify({"result": False}), 400
+
+
+def download_file(filename):
+    return (
+        s3_client.get_object(Bucket="2018-stasyev-denis-bucket", Key=filename)
+        .get("Body")
+        .read()
+        .decode("utf-8")
+    )
 
 
 # Some other API methods
