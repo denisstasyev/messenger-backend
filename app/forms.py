@@ -41,6 +41,11 @@ class AttachmentForm(ModelForm):
         include = ["user_id", "chat_id", "message_id"]
 
 
+class FileForm(Form):
+    filename = TextField("filename", validators=[DataRequired()])
+    base64content = TextField("base64content", validators=[DataRequired()])
+
+
 # Authorization forms
 
 

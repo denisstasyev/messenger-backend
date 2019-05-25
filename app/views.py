@@ -15,6 +15,7 @@ from .forms import (
     ChatForm,
     MessageForm,
     AttachmentForm,
+    FileForm,
     LoginForm,
     RegistrationForm,
 )
@@ -462,7 +463,7 @@ def create_chat():
     rv = cache.get("my_chats_by_" + current_user.username)
     if rv is None:
         cache.set(
-            "my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60
+            "my_chats_by_" + current_user.username, [model_as_dict(chat)], timeout=5 * 60
         )
     else:
         rv.append(model_as_dict(chat))
@@ -523,7 +524,7 @@ def update_chat(chatname):
     rv = cache.get("my_chats_by_" + current_user.username)
     if rv is None:
         cache.set(
-            "my_chats_by_" + current_user.username, model_as_dict(chat), timeout=5 * 60
+            "my_chats_by_" + current_user.username, [model_as_dict(chat)], timeout=5 * 60
         )
     else:
         rv = calculate_my_chats()
@@ -689,8 +690,20 @@ def delete_attachment(attachment_id):
     return jsonify({"result": True}), 200
 
 
+# TODO: Check this method!
+@app.route("/api/upload_file_/", methods=["POST"])
+def upload_file_():
+    if not request.json:
+        abort(400)
+
+    form = FileForm.from_json(request.json)
+
+    print(form.filename.data, form.base64content.data)
+    return upload_file(form.filename.data, form.base64content.data)
+
+
 # TODO: filename should be unique!
-def upload_file(base64content, filename):
+def upload_file(filename, base64content):
     if s3_client.put_object(
         Bucket="2018-stasyev-denis-bucket",
         Key=filename,
